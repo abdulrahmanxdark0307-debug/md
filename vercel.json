@@ -10,11 +10,15 @@
       "use": "@vercel/static"
     },
     {
-      "src": "*.css", 
+      "src": "*.css",
       "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/auth/callback",
+      "dest": "/auth-callback.html"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
