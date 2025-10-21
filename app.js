@@ -1,24 +1,57 @@
 document.addEventListener('DOMContentLoaded', async function() {
-    
-    cleanURL();
-    console.log('📄 DOM loaded, setting up auth listener...');
+    console.log('📄 DOM loaded, setting up Discord auth system...');
     
     const loginModal = document.getElementById('loginModal');
     const app = document.querySelector('.app');
     
-    // Remove any OAuth parameters from URL to prevent loops
+    // إذا كنا في صفحة callback، لا ننفذ الكود الرئيسي
+    if (window.location.pathname.includes('auth/callback')) {
+        console.log('🔄 On callback page, skipping main app initialization');
+        return;
+    }
+    
+    // تنظيف URL من معلمات OAuth
     if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
-        console.log('🧹 Cleaning OAuth parameters from URL');
-        window.history.replaceState({}, document.title, window.location.pathname);
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('🧹 Cleaned URL parameters');
     }
 
-    async function initializeAppForUser(user) {
+    // دالة للتحقق من جلسة Discord
+    function checkDiscordSession() {
         try {
-            console.log('🚀 Initializing app for user:', user.email);
+            const session = localStorage.getItem('discord_user_session');
+            if (!session) return null;
             
-            currentUser = user;
+            const userSession = JSON.parse(session);
             
-            // Initialize all components
+            // التحقق من أن الجلسة لم تنتهِ (24 ساعة)
+            const authTime = new Date(userSession.authenticatedAt);
+            const now = new Date();
+            const hoursDiff = (now - authTime) / (1000 * 60 * 60);
+            
+            if (hoursDiff > 24) {
+                localStorage.removeItem('discord_user_session');
+                localStorage.removeItem('discord_access_token');
+                return null;
+            }
+            
+            return userSession;
+        } catch (error) {
+            console.error('Error checking Discord session:', error);
+            return null;
+        }
+    }
+
+    async function initializeAppForDiscordUser(userSession) {
+        try {
+            console.log('🚀 Initializing app for Discord user:', userSession.username);
+            
+            // تخزين بيانات المستخدم في متغير عام
+            window.discordUser = userSession;
+            currentUser = { id: userSession.discord_uid, email: null };
+            
+            // تهيئة المكونات
             initSettings();
             await initArchive();
             initDeckSimulator();
@@ -27,11 +60,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             await renderAll();
             await setupEventListeners();
             
-            // Show main app, hide login
+            // إظهار التطبيق الرئيسي
             if (loginModal) loginModal.style.display = 'none';
-            if (app) app.style.display = 'block';
+            if (app) {
+                app.style.display = 'block';
+                app.style.opacity = '1';
+            }
             
-            console.log('✅ App initialized successfully');
+            // تحديث واجهة المستخدم
+            updateUserProfile(userSession);
+            
+            console.log('✅ App initialized successfully for Discord user');
             window.appInitialized = true;
             
         } catch (error) {
@@ -40,70 +79,114 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    function updateUserProfile(userSession) {
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const userRank = document.getElementById('userRank');
+        
+        if (userAvatar) {
+            if (userSession.avatar) {
+                userAvatar.innerHTML = '';
+                userAvatar.style.backgroundImage = `url(https://cdn.discordapp.com/avatars/${userSession.discord_uid}/${userSession.avatar}.png)`;
+                userAvatar.style.backgroundSize = 'cover';
+            } else {
+                userAvatar.textContent = userSession.username.charAt(0).toUpperCase();
+            }
+        }
+        
+        if (userName) {
+            userName.textContent = userSession.username;
+        }
+        
+        if (userRank) {
+            userRank.textContent = 'Discord Member';
+        }
+    }
+
     function showLoginScreen() {
         console.log('👤 Showing login screen');
-        const loginModal = document.getElementById('loginModal');
-        const app = document.querySelector('.app');
-        
-        if (loginModal) loginModal.style.display = 'flex';
-        if (app) app.style.display = 'none';
-        
+        if (loginModal) {
+            loginModal.style.display = 'flex';
+            loginModal.classList.add('active');
+        }
+        if (app) {
+            app.style.display = 'none';
+            app.style.opacity = '0';
+        }
+        window.discordUser = null;
         currentUser = null;
         window.appInitialized = false;
     }
 
-    // Check current authentication state
+    // التحقق من جلسة Discord الحالية
     async function checkAuthStatus() {
         try {
-            const { data: { session }, error } = await supabase.auth.getSession();
+            console.log('🔐 Checking Discord session...');
             
-            if (error) {
-                console.error('Session error:', error);
-                showLoginScreen();
-                return;
-            }
+            const userSession = checkDiscordSession();
             
-            if (session?.user) {
-                console.log('✅ User already authenticated');
-                await initializeAppForUser(session.user);
+            if (userSession && userSession.isAuthenticated) {
+                console.log('✅ Discord user authenticated:', userSession.username);
+                await initializeAppForDiscordUser(userSession);
+                return true;
             } else {
-                console.log('❌ No active session');
+                console.log('❌ No active Discord session');
                 showLoginScreen();
+                return false;
             }
+            
         } catch (error) {
-            console.error('Auth check error:', error);
+            console.error('Error checking auth status:', error);
             showLoginScreen();
+            return false;
         }
     }
 
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state change:', event);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-            console.log('✅ User signed in successfully');
-            if (!window.appInitialized) {
-                await initializeAppForUser(session.user);
-            }
-            showAlert(`Welcome to Duelist Tracker!`, 'success');
-            
-        } else if (event === 'SIGNED_OUT') {
-            console.log('🚪 User signed out');
-            showLoginScreen();
-            showAlert('You have been logged out', 'info');
-            
-        } else if (event === 'INITIAL_SESSION' && session?.user) {
-            console.log('🔄 Initial session detected');
-            if (!window.appInitialized) {
-                await initializeAppForUser(session.user);
-            }
-        }
-    });
-
-    // Initial check
+    // التحقق الأولي
     await checkAuthStatus();
-    initLoginSystem();
+    
+    // تهيئة نظام Login
+    initDiscordLoginSystem();
 });
+
+// نظام تسجيل الدخول الجديد
+function initDiscordLoginSystem() {
+    const discordLoginBtn = document.getElementById('discordLoginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    if (discordLoginBtn) {
+        discordLoginBtn.addEventListener('click', startDiscordOAuth);
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutDiscordUser);
+    }
+}
+
+function startDiscordOAuth() {
+    console.log('🔄 Starting Discord OAuth...');
+    
+    const clientId = '1372265309049720842'; // استبدل بـ Client ID
+    const redirectUri = encodeURIComponent('https://masterdueltracker.vercel.app/auth/callback');
+    const scope = encodeURIComponent('identify guilds');
+    
+    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&prompt=consent`;
+    
+    console.log('🔗 Redirecting to Discord...');
+    window.location.href = discordAuthUrl;
+}
+
+function logoutDiscordUser() {
+    if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('discord_user_session');
+        localStorage.removeItem('discord_access_token');
+        window.discordUser = null;
+        currentUser = null;
+        window.appInitialized = false;
+        
+        window.location.href = '/';
+    }
+}
 // دالة تنظيف
 
 function cleanURL() {
@@ -320,7 +403,7 @@ async function loadUserSessions(userId) {
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('discord_uid', userId)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -371,7 +454,7 @@ async function loadUserSessions(userId) {
 async function saveUserSession(session, userId) {
   try {
     const sessionData = {
-      user_id: userId,
+      discord_uid: userId,
       name: session.name,
       matches: session.matches,
       decks: session.decks,
@@ -553,7 +636,7 @@ async function loadUserDeckLists(userId) {
   const { data, error } = await supabase
     .from('deck_lists')
     .select('*')
-    .eq('user_id', userId)
+    .eq('discord_uid', userId)
     .order('created_at', { ascending: false });
   
   if (error) {
@@ -579,7 +662,7 @@ async function loadUserDeckLists(userId) {
 
 async function saveUserDeckList(deckList, userId) {
   const deckListData = {
-    user_id: userId,
+    discord_uid: userId,
     name: deckList.name,
     image_url: deckList.image,
     description: deckList.description,
@@ -2189,7 +2272,7 @@ function calculateDeckProbabilities() {
 async function loadAllPlayers() {
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('user_id, username, created_at, last_active')
+    .select('discord_uid, username, created_at, last_active')
     .order('username');
   
   if (error) {
@@ -2204,7 +2287,7 @@ async function loadPlayerData(userId) {
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select('*')
-    .eq('user_id', userId);
+    .eq('discord_uid', userId);
   
   if (error) {
     console.error('Error loading player data:', error);
@@ -2272,7 +2355,7 @@ async function loadPlayersForArchive() {
   archivePlayerSelect.innerHTML = '<option value="">Select a player...</option>';
   players.forEach(player => {
     const option = document.createElement('option');
-    option.value = player.user_id;
+    option.value = player.discord_uid;
     option.textContent = player.username;
     archivePlayerSelect.appendChild(option);
   });
