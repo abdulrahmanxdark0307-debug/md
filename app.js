@@ -43,7 +43,7 @@ try {
   console.error('Error initializing Supabase:', error);
 }
 
-function handleOAuthRedirect() {
+async function handleOAuthRedirect() {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
     console.error('Session error:', error);
@@ -104,12 +104,12 @@ const defaultSettings = {
 
 // ==================== نظام المستخدمين مع Supabase ====================
 
-function getCurrentSessionUser() {
+async function getCurrentSessionUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
 }
 
-function logoutUser() {
+async function logoutUser() {
   const { error } = await supabase.auth.signOut();
   if (error) console.error('Logout error:', error);
 }
@@ -135,7 +135,7 @@ function initLoginSystem() {
   }
 }
 
- function handleDiscordLogin() {
+ async function handleDiscordLogin() {
   console.log('🎯 handleDiscordLogin called');
   
   try {
@@ -148,13 +148,13 @@ function initLoginSystem() {
   }
 }
 
- function handleLogout() {
+async function handleLogout() {
   if (confirm('Are you sure you want to logout?')) {
     await logoutUser();
   }
 }
 
- function signInWithDiscord() {
+ async function signInWithDiscord() {
   console.log('🔄 Starting Discord OAuth...');
   
   try {
@@ -186,7 +186,7 @@ function initLoginSystem() {
 
 // ==================== نظام إدارة الجلسات مع Supabase ====================
 
-function loadUserSessions(userId) {
+async function loadUserSessions(userId) {
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
@@ -216,7 +216,7 @@ function loadUserSessions(userId) {
   return sessions;
 }
 
- function saveUserSession(session, userId) {
+async function saveUserSession(session, userId) {
   const sessionData = {
     user_id: userId,
     name: session.name,
@@ -265,7 +265,7 @@ function loadUserSessions(userId) {
   }
 }
 
-function deleteUserSession(sessionId) {
+async function deleteUserSession(sessionId) {
   const { error } = await supabase
     .from('sessions')
     .delete()
@@ -276,7 +276,7 @@ function deleteUserSession(sessionId) {
   delete allSessions[sessionId];
 }
 
-function renameUserSession(sessionId, newName) {
+async function renameUserSession(sessionId, newName) {
   const { error } = await supabase
     .from('sessions')
     .update({ name: newName })
@@ -291,7 +291,7 @@ function renameUserSession(sessionId, newName) {
 
 // ==================== نظام قوائم المجموعات مع Supabase ====================
 
-function loadUserDeckLists(userId) {
+async function loadUserDeckLists(userId) {
   const { data, error } = await supabase
     .from('deck_lists')
     .select('*')
@@ -319,7 +319,7 @@ function loadUserDeckLists(userId) {
   }));
 }
 
-function saveUserDeckList(deckList, userId) {
+async function saveUserDeckList(deckList, userId) {
   const deckListData = {
     user_id: userId,
     name: deckList.name,
@@ -350,7 +350,7 @@ function saveUserDeckList(deckList, userId) {
   }
 }
 
- function deleteUserDeckList(deckListId) {
+async function deleteUserDeckList(deckListId) {
   const { error } = await supabase
     .from('deck_lists')
     .delete()
@@ -361,7 +361,7 @@ function saveUserDeckList(deckList, userId) {
 
 // ==================== نظام إدارة الجلسات ====================
 
- function populateSessionSelect() {
+async function populateSessionSelect() {
   if (!currentUser) return;
   
   await loadUserSessions(currentUser.id);
@@ -419,7 +419,7 @@ function saveUserDeckList(deckList, userId) {
   }
 }
 
- function renderMatches() {
+async function renderMatches() {
   if (!currentUser || !currentSessionId) return;
   
   const currentSession = allSessions[currentSessionId];
@@ -507,7 +507,7 @@ function recalcSession(session) {
   session.peakPoints = peak;
 }
 
- function addMatch() {
+async function addMatch() {
   if (!currentUser || !currentSessionId) return;
   
   const currentSession = allSessions[currentSessionId];
@@ -580,7 +580,7 @@ function recalcSession(session) {
   checkConsecutiveLosses(currentSession);
 }
 
- function createSession(name) {
+async function createSession(name) {
   if (!currentUser) return;
   
   const settings = loadSettings();
@@ -1928,7 +1928,7 @@ function calculateDeckProbabilities() {
 
 // ==================== نظام الأرشيف ====================
 
- function loadAllPlayers() {
+async function loadAllPlayers() {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('user_id, username, created_at, last_active')
@@ -1942,7 +1942,7 @@ function calculateDeckProbabilities() {
   return data;
 }
 
- function loadPlayerData(userId) {
+async function loadPlayerData(userId) {
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select('*')
@@ -1976,7 +1976,7 @@ function calculateDeckProbabilities() {
   };
 }
 
- function initArchive() {
+async function initArchive() {
   await loadPlayersForArchive();
   
   const archivePlayerSelect = document.getElementById('archivePlayerSelect');
@@ -2005,7 +2005,7 @@ function calculateDeckProbabilities() {
   });
 }
 
- function loadPlayersForArchive() {
+async function loadPlayersForArchive() {
   const players = await loadAllPlayers();
   const archivePlayerSelect = document.getElementById('archivePlayerSelect');
   
@@ -2020,7 +2020,7 @@ function calculateDeckProbabilities() {
   });
 }
 
- function loadPlayerArchive(userId) {
+async function loadPlayerArchive(userId) {
   const playerData = await loadPlayerData(userId);
   const archiveContent = document.getElementById('archiveContent');
   const archiveEmpty = document.getElementById('archiveEmpty');
@@ -2268,7 +2268,7 @@ function renderArchiveMatches(matches) {
 
 // ==================== نظام قوائم المجموعات ====================
 
- function renderDeckLists() {
+async function renderDeckLists() {
   if (!currentUser) return;
   
   const deckListsContainer = document.getElementById('deckListsContainer');
@@ -2398,7 +2398,7 @@ function renderArchiveMatches(matches) {
   });
 }
 
- function updateDeckListStats(deckLists) {
+async function updateDeckListStats(deckLists) {
   let allMatches = [];
   Object.values(allSessions).forEach(session => {
     allMatches = allMatches.concat(session.matches);
@@ -2697,7 +2697,7 @@ function checkConsecutiveLosses(session) {
 
 // ==================== نظام التصدير والاستيراد ====================
 
- function exportSession() {
+async function exportSession() {
   if (!currentUser || !currentSessionId) return;
   
   const session = allSessions[currentSessionId];
@@ -2850,7 +2850,7 @@ function hideSessionModal() {
   if (sessionModal) sessionModal.classList.remove('active');
 }
 
- function createSessionFromModal() {
+async function createSessionFromModal() {
   const sessionNameInput = document.getElementById('sessionNameInput');
   const sessionFormulaSelect = document.getElementById('sessionFormulaSelect');
   const sessionStartPoints = document.getElementById('sessionStartPoints');
@@ -2920,7 +2920,7 @@ function hideDeckListModal() {
   if (deckListModal) deckListModal.classList.remove('active');
 }
 
- function addDeckListFromModal() {
+async function addDeckListFromModal() {
   const deckListName = document.getElementById('deckListName');
   const deckListImage = document.getElementById('deckListImage');
   const deckListDescription = document.getElementById('deckListDescription');
@@ -2959,7 +2959,7 @@ function hideDeckListModal() {
 
 // ==================== تهيئة التطبيق ====================
 
- function initializeApp() {
+async function initializeApp() {
   console.log('🚀 Initializing application...');
   
   initSettings();
@@ -2980,7 +2980,7 @@ function hideDeckListModal() {
   await renderDeckLists();
 }
 
-function setupEventListeners() {
+async function setupEventListeners() {
   console.log('🔧 Setting up event listeners...');
   
   // Session elements
