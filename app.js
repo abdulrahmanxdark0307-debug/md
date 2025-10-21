@@ -1982,7 +1982,7 @@ async function initArchive() {
   
   if (!archivePlayerSelect || !refreshArchiveBtn) return;
   
-archivePlayerSelect.addEventListener('change', async async () => {
+archivePlayerSelect.addEventListener('change', async () => {
   const userId = archivePlayerSelect.value;
   if (userId) {
     await loadPlayerArchive(userId);
@@ -1994,7 +1994,7 @@ archivePlayerSelect.addEventListener('change', async async () => {
   }
 });
   
-  refreshArchiveBtn.addEventListener('click', async async () => {
+  refreshArchiveBtn.addEventListener('click', async () => {
     await loadPlayersForArchive();
     const currentUserId = archivePlayerSelect.value;
     if (currentUserId) {
@@ -2989,7 +2989,7 @@ async function setupEventListeners() {
   const clearSessionBtn = document.getElementById('clearSessionBtn');
   
 if (sessionSelect) {
-  sessionSelect.addEventListener('change', async async () => {
+  sessionSelect.addEventListener('change', async () => {
     currentSessionId = sessionSelect.value;
     await populateDecks();
     await renderMatches();
@@ -3001,7 +3001,7 @@ if (sessionSelect) {
   }
   
   if (clearSessionBtn) {
-    clearSessionBtn.addEventListener('click', async async () => {
+    clearSessionBtn.addEventListener('click', async () => {
       if (!currentUser || !currentSessionId) return;
       
       if (!confirm('Clear all matches in current session?')) return;
