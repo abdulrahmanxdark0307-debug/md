@@ -284,24 +284,30 @@ async function handleLogout() {
 
 
 async function signInWithDiscord() {
-    console.log('🔄 Starting custom Discord OAuth...');
+    console.log('🔄 Starting Discord OAuth...');
     
     try {
-        const clientId = '1430000600275222559'; // استبدل بـ Client ID تطبيقك
-        const redirectUri = encodeURIComponent('https://masterdueltracker.vercel.app/auth/callback');
-        const scope = encodeURIComponent('identify email');
+        // استخدام Supabase OAuth مباشرة بدون custom redirect
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'discord',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
         
-        // بناء رابط Discord OAuth مباشرة
-        const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+        if (error) {
+            console.error('❌ Discord OAuth Error:', error);
+            showAlert('Login failed: ' + error.message, 'error');
+            return null;
+        }
         
-        console.log('🔗 Redirecting to Discord:', discordAuthUrl);
-        
-        // توجيه المستخدم إلى Discord
-        window.location.href = discordAuthUrl;
+        console.log('✅ OAuth initiated successfully');
+        return data;
         
     } catch (error) {
-        console.error('❌ Error starting Discord OAuth:', error);
-        showAlert('Error starting login process', 'error');
+        console.error('❌ Unexpected error in signInWithDiscord:', error);
+        showAlert('Unexpected error during login', 'error');
+        return null;
     }
 }
 
