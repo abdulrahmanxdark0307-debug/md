@@ -18,11 +18,12 @@ if (typeof Chart === 'undefined') {
 // كود Supabase الأساسي مع معالجة الأخطاء
 // كود Supabase الأساسي مع معالجة الأخطاء
 // كود Supabase الأساسي مع معالجة0 الأخطاء
+// كود Supabase الأساسي مع معالجة الأخطاء
 let supabase;
 
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0'; // تأكد من المفتاح الصحيح
+  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0';
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
@@ -239,7 +240,7 @@ async function registerUser(username, password) {
 
 async function loginUser(email, password) {
   try {
-    const { data, error } = await supabase.auth.Password({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password
     });
@@ -3095,30 +3096,7 @@ function setupEventListeners() {
 
 // ==================== بدء التطبيق ====================
 
-document.addEventListener('DOMContentLoaded', function() {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
-      currentUser = session.user;
-      loginModal.classList.remove('active');
-      app.style.display = 'block';
-      await initializeApp();
-      
-      // عرض رسالة ترحيب
-      const userName = currentUser.user_metadata?.full_name || 
-                      currentUser.user_metadata?.user_name || 
-                      currentUser.email;
-      showAlert(`Welcome back, ${userName}!`, 'success');
-    } else {
-      currentUser = null;
-      currentSessionId = null;
-      allSessions = {};
-      loginModal.classList.add('active');
-      app.style.display = 'none';
-    }
-  });
-  
-  initLoginSystem();
-  initSupabase();
+
 
   
 supabase.auth.onAuthStateChange(async (event, session) => {
@@ -3136,5 +3114,27 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       allSessions = {};
       loginModal.classList.add('active');
       app.style.display = 'none';
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('🔐 Auth state changed:', event, session);
+    
+    if (session) {
+      currentUser = session.user;
+      loginModal.classList.remove('active');
+      app.style.display = 'block';
+      await initializeApp();
+      showAlert(`Welcome back!`, 'success');
+    } else {
+      currentUser = null;
+      currentSessionId = null;
+      allSessions = {};
+      loginModal.classList.add('active');
+      app.style.display = 'none';
+    }
+  });
   
+  initLoginSystem();
+ 
 });
