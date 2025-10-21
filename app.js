@@ -4,104 +4,100 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loginModal = document.getElementById('loginModal');
     const app = document.querySelector('.app');
     
-    // First, check if we have a session from OAuth callback
-    try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-            console.error('Error getting session:', error);
-        }
-        
-        console.log('🔐 Initial session check:', session ? 'Found' : 'Not found');
-        
-        if (session) {
-            console.log('✅ User is authenticated');
-            currentUser = session.user;
+    // If we're on the callback page, don't run the main app logic
+    if (window.location.pathname.includes('auth-callback') || window.location.pathname.includes('auth/callback')) {
+        console.log('🔄 On callback page, skipping main app initialization');
+        return;
+    }
+
+    async function initializeAppForUser() {
+        try {
+            console.log('🚀 Initializing app for authenticated user...');
+            
+            // Initialize all app components
+            initSettings();
+            await initArchive();
+            initDeckSimulator();
+            initDeckCalculator();
+            
+            await renderAll();
+            await setupEventListeners();
+            
+            // Show the main app interface
             if (loginModal) loginModal.classList.remove('active');
             if (app) app.style.display = 'block';
-            await initializeApp();
-            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
-        } else {
-            console.log('❌ No session found');
-            if (loginModal) loginModal.classList.add('active');
-            if (app) app.style.display = 'none';
+            
+            console.log('✅ App initialized successfully');
+            window.appInitialized = true;
+            
+        } catch (error) {
+            console.error('❌ Error initializing app:', error);
         }
-    } catch (error) {
-        console.error('Error in initial auth check:', error);
+    }
+
+    async function checkAuthState() {
+        try {
+            console.log('🔐 Checking authentication state...');
+            
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) {
+                console.error('Error getting session:', error);
+                showLoginScreen();
+                return;
+            }
+            
+            if (session && session.user) {
+                console.log('✅ User is authenticated:', session.user.email);
+                currentUser = session.user;
+                await initializeAppForUser();
+                showAlert(`Welcome to Duelist Tracker, ${session.user.email || 'User'}!`, 'success');
+            } else {
+                console.log('❌ No active session found');
+                showLoginScreen();
+            }
+            
+        } catch (error) {
+            console.error('Error in auth check:', error);
+            showLoginScreen();
+        }
+    }
+
+    function showLoginScreen() {
+        console.log('👤 Showing login screen');
         if (loginModal) loginModal.classList.add('active');
         if (app) app.style.display = 'none';
+        currentUser = null;
+        window.appInitialized = false;
     }
-    
-    // Listen for future auth state changes
+
+    // Listen for auth state changes
     supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth state changed:', event);
         
-        if (session) {
+        if (event === 'SIGNED_IN' && session) {
+            console.log('✅ User signed in');
             currentUser = session.user;
-            if (loginModal) loginModal.classList.remove('active');
-            if (app) app.style.display = 'block';
             
-            if (event === 'SIGNED_IN') {
-                // Only initialize if not already initialized
-                if (!window.appInitialized) {
-                    await initializeApp();
-                    window.appInitialized = true;
-                }
-                showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+            if (!window.appInitialized) {
+                await initializeAppForUser();
             }
-        } else {
-            currentUser = null;
-            currentSessionId = null;
-            allSessions = {};
-            window.appInitialized = false;
-            if (loginModal) loginModal.classList.add('active');
-            if (app) app.style.display = 'none';
+            
+            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+            
+        } else if (event === 'SIGNED_OUT') {
+            console.log('🚪 User signed out');
+            showLoginScreen();
+            showAlert('You have been logged out', 'info');
         }
     });
+
+    // Initial auth check
+    await checkAuthState();
     
+    // Initialize login system
     initLoginSystem();
 });
-// Track if app is initialized
-window.appInitialized = false;
-
-// Improved session handling
-async function checkAndRefreshSession() {
-    try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-            console.error('Session check error:', error);
-            return false;
-        }
-        
-        if (session) {
-            // Check if session is expired or about to expire
-            const expiresAt = new Date(session.expires_at * 1000);
-            const now = new Date();
-            const timeUntilExpiry = expiresAt - now;
-            
-            if (timeUntilExpiry < 5 * 60 * 1000) { // 5 minutes
-                console.log('🔄 Session expiring soon, refreshing...');
-                const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
-                
-                if (refreshError) {
-                    console.error('Session refresh error:', refreshError);
-                    return false;
-                }
-                
-                return !!newSession;
-            }
-            
-            return true;
-        }
-        
-        return false;
-    } catch (error) {
-        console.error('Error checking session:', error);
-        return false;
-    }
-}
-
 
 // تحقق من أن الملف يحمل كـ JavaScript
 
@@ -264,20 +260,11 @@ async function signInWithDiscord() {
     console.log('🔄 Starting Discord OAuth...');
     
     try {
-        // Get current origin dynamically
-        const currentOrigin = window.location.origin;
-        const redirectUrl = `${currentOrigin}/auth-callback.html`;
-        
-        console.log('🔗 Redirect URL:', redirectUrl);
-
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'discord',
             options: {
-                redirectTo: redirectUrl,
-                scopes: 'identify email',
-                queryParams: {
-                    prompt: 'consent' // Force consent screen every time
-                }
+                redirectTo: window.location.origin, // Let Supabase handle the redirect
+                scopes: 'identify email'
             }
         });
         
@@ -288,10 +275,6 @@ async function signInWithDiscord() {
         }
         
         console.log('✅ OAuth initiated successfully');
-        
-        // The user will be redirected to Discord, then back to auth-callback.html
-        // which will then redirect them back to the main app
-        
         return data;
         
     } catch (error) {
@@ -3219,19 +3202,18 @@ async function initializeApp() {
   
   await renderAll();
   setupEventListeners();
-  
-  console.log('✅ Application initialized successfully');
-}
+
 
 async function renderAll() {
-  await populateSessionSelect();
-  await populateDecks();
-  await renderMatches();
-  await renderDeckLists();
+    console.log('🔄 Rendering all components...');
+    await populateSessionSelect();
+    await populateDecks();
+    await renderMatches();
+    await renderDeckLists();
 }
 
 async function setupEventListeners() {
-  console.log('🔧 Setting up event listeners...');
+    console.log('🔧 Setting up event listeners...');
   
   // Session elements
   const sessionSelect = document.getElementById('sessionSelect');
@@ -3262,7 +3244,7 @@ if (sessionSelect) {
       await renderMatches();
     });
   }
-  
+
   // إدارة المجموعات
   const addDeckBtn = document.getElementById('addDeckBtn');
   const addOppBtn = document.getElementById('addOppBtn');
