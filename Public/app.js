@@ -263,6 +263,8 @@ async function logoutUser() {
 
 // ==================== نظام الجلسات مع Supabase ====================
 
+// ==================== نظام إدارة الجلسات مع Supabase ====================
+
 async function loadUserSessions(userId) {
   const { data, error } = await supabase
     .from('sessions')
@@ -292,6 +294,8 @@ async function loadUserSessions(userId) {
   allSessions = sessions;
   return sessions;
 }
+
+// باقي دوال إدارة الجلسات تبقى كما هي...
 
 async function saveUserSession(session, userId) {
   const sessionData = {
@@ -2572,11 +2576,19 @@ function updateUserProfile() {
   const userName = document.getElementById('userName');
   const userRank = document.getElementById('userRank');
   
-  if (userAvatar) userAvatar.textContent = currentUser.email?.charAt(0).toUpperCase() || 'U';
-  if (userName) userName.textContent = currentUser.email || 'User';
+  // استخدام بيانات من Discord إذا كانت متاحة
+  const displayName = currentUser.user_metadata?.full_name || 
+                     currentUser.user_metadata?.user_name || 
+                     currentUser.email || 
+                     'User';
+  
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+  
+  if (userAvatar) userAvatar.textContent = avatarLetter;
+  if (userName) userName.textContent = displayName;
   
   if (userRank) {
-    userRank.textContent = 'Connected to cloud database';
+    userRank.textContent = 'Connected via Discord';
   }
 }
 
@@ -2665,94 +2677,24 @@ async function importSession(file) {
 }
 
 // ==================== نظام تسجيل الدخول ====================
+// ==================== نظام تسجيل الدخول (Discord) ====================
 
 function initLoginSystem() {
-  loginTabs.forEach(tab => {
-    tab.addEventListener('click', function() {
-      loginTabs.forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      
-      if (this.dataset.tab === 'login') {
-        loginForm.style.display = 'block';
-        registerForm.style.display = 'none';
-        loginSubmitBtn.style.display = 'block';
-        registerSubmitBtn.style.display = 'none';
-      } else {
-        loginForm.style.display = 'none';
-        registerForm.style.display = 'block';
-        loginSubmitBtn.style.display = 'none';
-        registerSubmitBtn.style.display = 'block';
-      }
-    });
-  });
+  const discordLoginBtn = document.getElementById('discordLoginBtn');
   
-  loginSubmitBtn.addEventListener('click', handleLogin);
-  registerSubmitBtn.addEventListener('click', handleRegister);
+  if (discordLoginBtn) {
+    discordLoginBtn.addEventListener('click', handleDiscordLogin);
+  }
+  
   logoutBtn.addEventListener('click', handleLogout);
-  
-  loginUsername.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') handleLogin();
-  });
-  
-  loginPassword.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') handleLogin();
-  });
 }
 
-async function handleLogin() {
-  const username = loginUsername.value.trim();
-  const password = loginPassword.value.trim();
-  
-  if (!username || !password) {
-    showLoginError('Please enter username and password');
-    return;
-  }
-  
+async function handleDiscordLogin() {
   try {
-    const email = `${username}@duelist-tracker.com`;
-    await loginUser(email, password);
-    showAlert('Login successful!', 'success');
+    await signInWithDiscord();
+    showAlert('Redirecting to Discord for authentication...', 'info');
   } catch (error) {
-    showLoginError('Invalid username or password');
-  }
-}
-
-async function handleRegister() {
-  const username = registerUsername.value.trim();
-  const password = registerPassword.value.trim();
-  const confirmPassword = registerConfirmPassword.value.trim();
-  
-  if (!username || !password) {
-    showLoginError('Please enter username and password');
-    return;
-  }
-  
-  if (password !== confirmPassword) {
-    showLoginError('Passwords do not match');
-    return;
-  }
-  
-  if (username.length < 3) {
-    showLoginError('Username must be at least 3 characters');
-    return;
-  }
-  
-  if (password.length < 4) {
-    showLoginError('Password must be at least 4 characters');
-    return;
-  }
-  
-  try {
-    await registerUser(username, password);
-    showAlert('Registration successful! Please check your email for verification.', 'success');
-    
-    loginTabs.forEach(tab => {
-      if (tab.dataset.tab === 'login') {
-        tab.click();
-      }
-    });
-  } catch (error) {
-    showLoginError('Registration failed. Username may already exist.');
+    showAlert('Failed to sign in with Discord', 'error');
   }
 }
 
@@ -2762,11 +2704,37 @@ async function handleLogout() {
   }
 }
 
-function showLoginError(message) {
-  loginError.textContent = message;
-  loginError.style.display = 'block';
+// إزالة الدوال القديمة (handleLogin, handleRegister, showLoginError)
+// ==================== نظام المستخدمين مع Supabase (Discord OAuth) ====================
+
+async function signInWithDiscord() {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Discord login error:', error);
+    throw error;
+  }
 }
 
+async function getCurrentSessionUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
+async function logoutUser() {
+  const { error } = await supabase.auth.signOut();
+  if (error) console.error('Logout error:', error);
+}
+
+// إزالة دوال التسجيل القديمة (registerUser, loginUser)
 // ==================== إدارة Modals ====================
 
 function showDeckModal() {
@@ -3069,6 +3037,12 @@ document.addEventListener('DOMContentLoaded', function() {
       loginModal.classList.remove('active');
       app.style.display = 'block';
       await initializeApp();
+      
+      // عرض رسالة ترحيب
+      const userName = currentUser.user_metadata?.full_name || 
+                      currentUser.user_metadata?.user_name || 
+                      currentUser.email;
+      showAlert(`Welcome back, ${userName}!`, 'success');
     } else {
       currentUser = null;
       currentSessionId = null;
