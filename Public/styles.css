@@ -217,4 +217,30 @@ th{background:rgba(255,255,255,0.02);font-weight:700;color:#cfe6ff}
 }
 @media (max-width:600px){ 
   .best-decks-container{grid-template-columns:1fr}
+
+  .discord-btn {
+  background: #5865F2;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--transition);
+  font-size: 16px;
+}
+
+.discord-btn:hover {
+  background: #4752C4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+.discord-btn img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
 }
