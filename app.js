@@ -20,7 +20,7 @@ let supabase;
 
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_Xcw9LBFvQLejpAnKxcxRfHg_0DCd3PT0';
+  const SUPABASE_ANON_KEY = 'sb_secret_GAC8FPJTEpw_FLYl_Kql6Q_LXqPwanJ';
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
@@ -154,15 +154,17 @@ async function handleLogout() {
   }
 }
 
- async function signInWithDiscord() {
+
+async function signInWithDiscord() {
   console.log('🔄 Starting Discord OAuth...');
   
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.origin, // ✅ تم التصحيح
-        scopes: 'identify email'
+        redirectTo: window.location.origin,
+        scopes: 'identify email',
+        skipBrowserRedirect: false // تأكد من هذه القيمة
       }
     });
     
@@ -182,108 +184,239 @@ async function handleLogout() {
   }
 }
 
+
+
 // ==================== نظام إدارة الجلسات مع Supabase ====================
 
 async function loadUserSessions(userId) {
-  const { data, error } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error loading sessions:', error);
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading sessions:', error);
+      
+      // معالجة خطأ المصادقة
+      if (error.status === 401) {
+        await handleAuthError(error);
+        return {};
+      }
+      
+      // معالجة أخطاء أخرى
+      if (error.code === 'PGRST116') {
+        console.log('No sessions found for user, returning empty object');
+        return {};
+      }
+      
+      showAlert('Error loading sessions: ' + error.message, 'error');
+      return {};
+    }
+    
+    const sessions = {};
+    if (data && data.length > 0) {
+      data.forEach(session => {
+        sessions[session.id] = {
+          id: session.id,
+          name: session.name,
+          createdAt: session.created_at,
+          matches: session.matches || [],
+          decks: session.decks || defaultDecks.slice(),
+          pointsStart: session.points_start || START_POINTS_RATED,
+          defaultDeck: session.default_deck || null,
+          peakPoints: session.peak_points || session.points_start || START_POINTS_RATED
+        };
+      });
+    }
+    
+    allSessions = sessions;
+    return sessions;
+    
+  } catch (error) {
+    console.error('Unexpected error in loadUserSessions:', error);
+    showAlert('Unexpected error loading sessions', 'error');
     return {};
   }
-  
-  const sessions = {};
-  data.forEach(session => {
-    sessions[session.id] = {
-      id: session.id,
-      name: session.name,
-      createdAt: session.created_at,
-      matches: session.matches || [],
-      decks: session.decks || defaultDecks.slice(),
-      pointsStart: session.points_start || START_POINTS_RATED,
-      defaultDeck: session.default_deck || null,
-      peakPoints: session.peak_points || session.points_start || START_POINTS_RATED
-    };
-  });
-  
-  allSessions = sessions;
-  return sessions;
 }
 
 async function saveUserSession(session, userId) {
-  const sessionData = {
-    user_id: userId,
-    name: session.name,
-    matches: session.matches,
-    decks: session.decks,
-    points_start: session.pointsStart,
-    default_deck: session.defaultDeck,
-    peak_points: session.peakPoints,
-    updated_at: new Date().toISOString()
-  };
-  
-  if (session.id) {
-    const { data, error } = await supabase
-      .from('sessions')
-      .update(sessionData)
-      .eq('id', session.id)
-      .select();
+  try {
+    const sessionData = {
+      user_id: userId,
+      name: session.name,
+      matches: session.matches,
+      decks: session.decks,
+      points_start: session.pointsStart,
+      default_deck: session.defaultDeck,
+      peak_points: session.peakPoints,
+      updated_at: new Date().toISOString()
+    };
     
-    if (error) throw error;
+    let result;
     
-    if (data && data[0]) {
-      allSessions[session.id] = {
-        ...session,
-        ...data[0]
-      };
+    if (session.id) {
+      const { data, error } = await supabase
+        .from('sessions')
+        .update(sessionData)
+        .eq('id', session.id)
+        .select();
+      
+      if (error) {
+        if (error.status === 401) {
+          await handleAuthError(error);
+          throw error;
+        }
+        throw error;
+      }
+      
+      if (data && data[0]) {
+        allSessions[session.id] = {
+          ...session,
+          ...data[0]
+        };
+        result = data[0];
+      } else {
+        throw new Error('No data returned after update');
+      }
+      
+    } else {
+      sessionData.created_at = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert(sessionData)
+        .select();
+      
+      if (error) {
+        if (error.status === 401) {
+          await handleAuthError(error);
+          throw error;
+        }
+        throw error;
+      }
+      
+      if (data && data[0]) {
+        allSessions[data[0].id] = {
+          ...session,
+          ...data[0]
+        };
+        result = data[0];
+      } else {
+        throw new Error('No data returned after insert');
+      }
     }
     
-    return data[0];
-  } else {
-    sessionData.created_at = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert(sessionData)
-      .select();
+    return result;
     
-    if (error) throw error;
+  } catch (error) {
+    console.error('Error saving session:', error);
     
-    if (data && data[0]) {
-      allSessions[data[0].id] = {
-        ...session,
-        ...data[0]
-      };
+    // إذا كان الخطأ غير متعلق بالمصادقة، عرض رسالة للمستخدم
+    if (error.status !== 401) {
+      showAlert('Error saving session: ' + error.message, 'error');
     }
     
-    return data[0];
+    throw error;
   }
 }
 
 async function deleteUserSession(sessionId) {
-  const { error } = await supabase
-    .from('sessions')
-    .delete()
-    .eq('id', sessionId);
-  
-  if (error) throw error;
-  
-  delete allSessions[sessionId];
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', sessionId);
+    
+    if (error) {
+      if (error.status === 401) {
+        await handleAuthError(error);
+        throw error;
+      }
+      throw error;
+    }
+    
+    delete allSessions[sessionId];
+    
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    
+    if (error.status !== 401) {
+      showAlert('Error deleting session: ' + error.message, 'error');
+    }
+    
+    throw error;
+  }
 }
 
 async function renameUserSession(sessionId, newName) {
-  const { error } = await supabase
-    .from('sessions')
-    .update({ name: newName })
-    .eq('id', sessionId);
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .update({ 
+        name: newName,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', sessionId);
+    
+    if (error) {
+      if (error.status === 401) {
+        await handleAuthError(error);
+        throw error;
+      }
+      throw error;
+    }
+    
+    if (allSessions[sessionId]) {
+      allSessions[sessionId].name = newName;
+    }
+    
+  } catch (error) {
+    console.error('Error renaming session:', error);
+    
+    if (error.status !== 401) {
+      showAlert('Error renaming session: ' + error.message, 'error');
+    }
+    
+    throw error;
+  }
+}
+
+// دالة مساعدة لمعالجة أخطاء المصادقة
+async function handleAuthError(error) {
+  console.error('Authentication error:', error);
   
-  if (error) throw error;
+  // تسجيل الخروج
+  await logoutUser();
   
-  if (allSessions[sessionId]) {
-    allSessions[sessionId].name = newName;
+  // عرض رسالة للمستخدم
+  showAlert('Your session has expired. Please login again.', 'error');
+  
+  // إعادة التوجيه إلى صفحة تسجيل الدخول
+  setTimeout(() => {
+    const loginModal = document.getElementById('loginModal');
+    const app = document.querySelector('.app');
+    
+    if (loginModal) loginModal.classList.add('active');
+    if (app) app.style.display = 'none';
+  }, 2000);
+}
+
+// دالة مساعدة لتسجيل الخروج
+async function logoutUser() {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // تنظيف البيانات المحلية
+    currentUser = null;
+    currentSessionId = null;
+    allSessions = {};
+    
+  } catch (error) {
+    console.error('Error during logout:', error);
   }
 }
 
