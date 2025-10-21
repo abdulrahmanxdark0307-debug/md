@@ -11,127 +11,137 @@
 <script defer src="./app.js"></script>
 </head>
 <body>
-  <!-- Login Modal -->
-<div id="loginModal" class="modal-overlay active">
-  <div class="modal-dialog login-modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Duelist Tracker Login</h3>
-    </div>
-    <div class="modal-body">
-      <div style="text-align: center; padding: 20px 0;">
-        <p style="margin-bottom: 20px; color: var(--muted);">Please login with Discord to continue</p>
-        <button id="discordLoginBtn" class="btn discord-btn">
-            <img src="https://unpkg.com/simple-icons@v5/icons/discord.svg" alt="Discord" style="width: 20px; height: 20px; margin-right: 8px;">
-                Login with Discord
-        </button>
-      </div>
-    </div>
+  <!-- 🔐 Login Section -->
+  <div id="authSection">
+    <button id="discordLoginBtn">Login with Discord</button>
+    <button id="logoutBtn" style="display:none;">Logout</button>
   </div>
-</div>
 
   <div class="app" style="display:none">
     <div class="tabs" role="tablist" aria-label="Main tabs">
       <div class="tab active" data-tab="submit">Match Submission</div>
       <div class="tab" data-tab="stats">Stats & Matrix</div>
-      <div class="tab" data-tab="predictions">Predictions</div>
-      <div class="tab" data-tab="comparison">Deck Comparison</div>
       <div class="tab" data-tab="analysis">Advanced Analysis</div>
       <div class="tab" data-tab="calc">Probability Calc</div>
-      <div class="tab" data-tab="simulator">Probability Simulator</div>
-      <div class="tab" data-tab="meta">Meta Feed</div>
-      <div class="tab" data-tab="sessions">Sessions</div>
-      <div class="tab" data-tab="deck-lists">Deck Lists</div>
+      <div class="tab" data-tab="simulator">Simulator</div>
       <div class="tab" data-tab="archive">Archive</div>
       <div class="tab" data-tab="settings">Settings</div>
     </div>
 
     <div class="panels">
-      <!-- سيتم تضمين محتوى الألواح هنا -->
-      <!-- Match Submission Panel -->
-      <section id="panel-submit" class="panel show" role="tabpanel" aria-labelledby="submit-tab">
-        <!-- محتوى لوح إدخال المباريات -->
+
+      <!-- 🧑 User Info -->
+      <section id="panel-profile" class="panel">
+        <h3 id="usernameDisplay">Welcome!</h3>
+        <div id="pointsInfo">Points: 0</div>
       </section>
 
-      <!-- Stats Panel -->
-      <section id="panel-stats" class="panel" role="tabpanel" aria-hidden="true">
-        <!-- محتوى لوح الإحصائيات -->
+      <!-- ⚙️ Session Management -->
+      <section id="panel-submit" class="panel show">
+        <div id="sessionManager">
+          <select id="sessionSelect"></select>
+          <button onclick="createSession()">New Session</button>
+          <button id="deleteSessionBtn">Delete Session</button>
+        </div>
+
+        <div id="deckSelectors">
+          <label>My Deck:</label>
+          <select id="deckSelect"></select>
+          <label>Opponent Deck:</label>
+          <select id="oppSelect"></select>
+          <label>Result:</label>
+          <select id="resultSelect"><option>Win</option><option>Loss</option></select>
+          <label>Turn:</label>
+          <select id="turnOrder"><option>1st</option><option>2nd</option></select>
+          <input id="ptsAfterOverride" placeholder="Custom Points (optional)" />
+          <button onclick="addMatch()">Add Match</button>
+        </div>
+
+        <table id="matchesTable">
+          <thead>
+            <tr>
+              <th>Your Deck</th><th>Opponent Deck</th><th>Result</th><th>Turn</th><th>Before</th><th>After</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p id="summaryLine">Matches: 0 • Points: 0 • Winrate: 0%</p>
       </section>
 
-      <!-- Archive Panel -->
-      <section id="panel-archive" class="panel" role="tabpanel" aria-hidden="true">
-        <div class="card">
-          <h3 style="margin:6px 0;color:var(--muted)">Player Archive</h3>
-          <div class="small" style="margin-bottom:16px">View match history and statistics for all players</div>
-          
-          <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-            <div class="group" style="flex:1;min-width:200px">
-              <label class="small">Select Player</label>
-              <select id="archivePlayerSelect" class="modal-input">
-                <option value="">Loading players...</option>
-              </select>
-            </div>
-            <button id="refreshArchiveBtn" class="btn" style="align-self:flex-end">Refresh</button>
-          </div>
-          
-          <div id="archiveContent" style="display:none">
-            <div class="cols">
-              <div class="card">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <div class="small">Progress (Line)</div>
-                  <div class="small" id="archiveChartInfo">Points over matches</div>
-                </div>
-                <div class="chart-container">
-                  <canvas id="archivePointsChart"></canvas>
-                </div>
+      <!-- 📈 Statistics -->
+      <section id="panel-stats" class="panel">
+        <div class="chart-container">
+          <canvas id="pointsChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <table id="deckPerfTable">
+          <thead><tr><th>Deck</th><th>Matches</th><th>Wins</th><th>WR%</th><th>1st WR%</th><th>2nd WR%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div id="matrixContainer"></div>
+      </section>
 
-                <div style="margin-top:14px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                    <h3 style="margin:0;color:var(--muted)">Matchup Matrix</h3>
-                  </div>
-                  <div id="archiveMatrixContainer" class="matrix-container"></div>
-                </div>
-              </div>
+      <!-- 🧠 Advanced Analysis -->
+      <section id="panel-analysis" class="panel">
+        <div id="advancedAnalysis">
+          <div>Average Winrate: <span id="avgWinRate">0%</span></div>
+          <div>Consistency Score: <span id="consistencyScore">0</span></div>
+          <div>Improvement Rate: <span id="improvementRate">0%</span></div>
+          <div>Meta Adaptation: <span id="metaAdaptation">0%</span></div>
+        </div>
 
-              <div class="card sidebar deck-perf-container">
-                <div class="small" style="margin-bottom:8px">Deck Performance</div>
-                <table id="archiveDeckPerfTable">
-                  <thead>
-                    <tr>
-                      <th>Deck</th>
-                      <th>Matches</th>
-                      <th>Wins</th>
-                      <th>WR Overall</th>
-                      <th>WR 1st</th>
-                      <th>WR 2nd</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div class="card" style="margin-top:16px">
-              <h4 style="margin:0 0 12px 0;color:var(--muted)">Recent Matches</h4>
-              <table id="archiveMatchesTable" aria-live="polite">
-                <thead><tr><th>Deck</th><th>Opponent</th><th>Result</th><th>Turn</th><th>Pts Before</th><th>Pts After</th><th>Date</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-          
-          <div id="archiveEmpty" style="text-align:center;padding:40px;color:var(--muted)">
-            <div style="font-size:18px;margin-bottom:8px">No player selected</div>
-            <div class="small">Select a player from the dropdown to view their statistics</div>
-          </div>
+        <table id="timeAnalysis">
+          <thead><tr><th>Time</th><th>Matches</th><th>Winrate</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <table id="sessionAnalysis">
+          <thead><tr><th>Session Length</th><th>WR%</th><th>Frequency</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <div id="strategicInsights"></div>
+      </section>
+
+      <!-- 🎲 Probability Calculator -->
+      <section id="panel-calc" class="panel">
+        <div id="hyperCalc">
+          <input id="deckSize" placeholder="Deck size" />
+          <input id="copiesRan" placeholder="Copies of card" />
+          <input id="cardsDrawn" placeholder="Cards drawn" />
+          <input id="oddsToHave" placeholder="Desired copies" />
+          <button onclick="calculateHypergeometric()">Calculate</button>
+          <div id="hyperResults"></div>
         </div>
       </section>
 
-      <!-- باقي الألواح -->
+      <!-- 🎮 Simulator -->
+      <section id="panel-simulator" class="panel">
+        <textarea id="deckText" placeholder="# Your Deck"></textarea>
+        <textarea id="comboText" placeholder="# Combo requirements"></textarea>
+        <input id="simHandSize" value="5" />
+        <input id="simTrials" value="10000" />
+        <button id="simulateBtn">Simulate</button>
+        <div id="simulationResult"></div>
+      </section>
+
+      <!-- 🗃️ Archive -->
+      <section id="panel-archive" class="panel">
+        <select id="archivePlayerSelect"></select>
+        <button id="refreshArchiveBtn">Refresh</button>
+        <div id="archiveContent"></div>
+        <div id="archiveEmpty">Select a player to view data</div>
+      </section>
+
     </div>
   </div>
 
-  <!-- سيتم تضمين جميع ال modals هنا -->
-
-
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof initializeApp === 'function') initializeApp();
+    });
+  </script>
 </body>
 </html>
