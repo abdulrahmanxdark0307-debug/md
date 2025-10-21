@@ -2708,9 +2708,9 @@ function initLoginSystem() {
 
   
   // تأكد من أن logoutBtn موجود
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', handleLogout);
-  }
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', handleLogout);
+}
 
 async function handleDiscordLogin() {
   console.log('🎯 handleDiscordLogin called');
@@ -2720,29 +2720,22 @@ async function handleDiscordLogin() {
     
     if (result) {
       console.log('✅ Login process completed');
+      console.log('OAuth successful, redirecting...');
     } else {
       console.log('❌ Login process failed');
     }
   } catch (error) {
     console.error('❌ Error in handleDiscordLogin:', error);
-    showAlert('Login process error: ' + error.message, 'error');
-  }
-}
     
-    if (error) {
-      console.error('OAuth Error Details:', error);
-      
-      if (error.message.includes('database')) {
-        showAlert('Database error. Please contact support.', 'error');
-      } else {
-        showAlert('Login failed: ' + error.message, 'error');
-      }
-      return;
+    // هذا هو الكود الذي كان خارج الدالة - تم دمجه هنا
+    console.error('OAuth Error Details:', error);
+    
+    if (error.message.includes('database')) {
+      showAlert('Database error. Please contact support.', 'error');
+    } else {
+      showAlert('Login failed: ' + error.message, 'error');
     }
     
-    console.log('OAuth successful, redirecting...');
-    
-  } catch (error) {
     console.error('Unexpected error during login:', error);
     showAlert('An unexpected error occurred. Please try again.', 'error');
   }
