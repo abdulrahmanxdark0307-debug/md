@@ -1984,17 +1984,17 @@ async function initArchive() {
   
   if (!archivePlayerSelect || !refreshArchiveBtn) return;
   
-  archivePlayerSelect.addEventListener('change',  () => {
-    const userId = archivePlayerSelect.value;
-    if (userId) {
-      await loadPlayerArchive(userId);
-    } else {
-      const archiveContent = document.getElementById('archiveContent');
-      const archiveEmpty = document.getElementById('archiveEmpty');
-      if (archiveContent) archiveContent.style.display = 'none';
-      if (archiveEmpty) archiveEmpty.style.display = 'block';
-    }
-  });
+archivePlayerSelect.addEventListener('change', async () => {
+  const userId = archivePlayerSelect.value;
+  if (userId) {
+    await loadPlayerArchive(userId);
+  } else {
+    const archiveContent = document.getElementById('archiveContent');
+    const archiveEmpty = document.getElementById('archiveEmpty');
+    if (archiveContent) archiveContent.style.display = 'none';
+    if (archiveEmpty) archiveEmpty.style.display = 'block';
+  }
+});
   
   refreshArchiveBtn.addEventListener('click',  () => {
     await loadPlayersForArchive();
