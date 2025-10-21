@@ -158,12 +158,10 @@ async function handleLogout() {
   console.log('🔄 Starting Discord OAuth...');
   
   try {
-    const currentUrl = window.location.origin;
-    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: "https://jazkprhtdtlixpdvpzbv.supabase.co/auth/v1/callback",
+        redirectTo: window.location.origin, // ✅ تم التصحيح
         scopes: 'identify email'
       }
     });
@@ -2724,9 +2722,9 @@ async function exportSession() {
   URL.revokeObjectURL(url);
 }
 
- function importSession(file) {
+async function importSession(file) { // ✅ أضف async
   const fr = new FileReader();
-  fr.onload =  e => {
+  fr.onload = async (e) => { // ✅ أضف async
     try{
       const parsed = JSON.parse(e.target.result);
       
@@ -2975,7 +2973,7 @@ async function initializeApp() {
   console.log('✅ Application initialized successfully');
 }
 
- function renderAll() {
+async function renderAll() {
   await populateSessionSelect();
   await populateDecks();
   await renderMatches();
@@ -2990,13 +2988,13 @@ async function setupEventListeners() {
   const addMatchBtn = document.getElementById('addMatchBtn');
   const clearSessionBtn = document.getElementById('clearSessionBtn');
   
-  if (sessionSelect) {
-    sessionSelect.addEventListener('change',  () => {
-      currentSessionId = sessionSelect.value;
-      await populateDecks();
-      await renderMatches();
-    });
-  }
+if (sessionSelect) {
+  sessionSelect.addEventListener('change', async () => {
+    currentSessionId = sessionSelect.value;
+    await populateDecks();
+    await renderMatches();
+  });
+}
   
   if (addMatchBtn) {
     addMatchBtn.addEventListener('click', addMatch);
