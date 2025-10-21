@@ -17,7 +17,7 @@ if (typeof Chart === 'undefined') {
 
 // كود Supabase الأساسي مع معالجة الأخطاء
 // كود Supabase الأساسي مع معالجة الأخطاء
-// كود Supabase الأساسي مع معالجة الأخطاء
+// كود Supabase الأساسي مع معالجة0 الأخطاء
 let supabase;
 
 try {
