@@ -1,4 +1,50 @@
+
+// Track if app is initialized
+window.appInitialized = false;
+
+// Improved session handling
+async function checkAndRefreshSession() {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+            console.error('Session check error:', error);
+            return false;
+        }
+        
+        if (session) {
+            // Check if session is expired or about to expire
+            const expiresAt = new Date(session.expires_at * 1000);
+            const now = new Date();
+            const timeUntilExpiry = expiresAt - now;
+            
+            if (timeUntilExpiry < 5 * 60 * 1000) { // 5 minutes
+                console.log('🔄 Session expiring soon, refreshing...');
+                const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
+                
+                if (refreshError) {
+                    console.error('Session refresh error:', refreshError);
+                    return false;
+                }
+                
+                return !!newSession;
+            }
+            
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Error checking session:', error);
+        return false;
+    }
+}
+
+
 // تحقق من أن الملف يحمل كـ JavaScript
+
+
+
 console.log("✅ app.js loaded as module");
 
 // تحقق من وجود مكتبة Supabase
@@ -20,7 +66,7 @@ let supabase;
 
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_secret_GAC8FPJTEpw_FLYl_Kql6Q_LXqPwanJ';
+  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0';
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
@@ -156,32 +202,44 @@ async function handleLogout() {
 
 
 async function signInWithDiscord() {
-  console.log('🔄 Starting Discord OAuth...');
-  
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: window.location.origin,
-        scopes: 'identify email',
-        skipBrowserRedirect: false // تأكد من هذه القيمة
-      }
-    });
+    console.log('🔄 Starting Discord OAuth...');
     
-    if (error) {
-      console.error('❌ Discord OAuth Error:', error);
-      showAlert('OAuth Error: ' + error.message, 'error');
-      return null;
+    try {
+        // Get current origin dynamically
+        const currentOrigin = window.location.origin;
+        const redirectUrl = `${currentOrigin}/auth-callback.html`;
+        
+        console.log('🔗 Redirect URL:', redirectUrl);
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'discord',
+            options: {
+                redirectTo: redirectUrl,
+                scopes: 'identify email',
+                queryParams: {
+                    prompt: 'consent' // Force consent screen every time
+                }
+            }
+        });
+        
+        if (error) {
+            console.error('❌ Discord OAuth Error:', error);
+            showAlert('OAuth Error: ' + error.message, 'error');
+            return null;
+        }
+        
+        console.log('✅ OAuth initiated successfully');
+        
+        // The user will be redirected to Discord, then back to auth-callback.html
+        // which will then redirect them back to the main app
+        
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Unexpected error in signInWithDiscord:', error);
+        showAlert('Unexpected error: ' + error.message, 'error');
+        return null;
     }
-    
-    console.log('✅ OAuth initiated successfully');
-    return data;
-    
-  } catch (error) {
-    console.error('❌ Unexpected error in signInWithDiscord:', error);
-    showAlert('Unexpected error: ' + error.message, 'error');
-    return null;
-  }
 }
 
 
@@ -3342,29 +3400,73 @@ if (sessionSelect) {
 
 // ==================== بدء التطبيق ====================
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('📄 DOM loaded, setting up auth listener...');
-  
-  const loginModal = document.getElementById('loginModal');
-  const app = document.querySelector('.app');
-  
-  supabase.auth.onAuthStateChange(async (event, session) => { // ✅ أضف async هنا
-    console.log('🔐 Auth state changed:', event, session);
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('📄 DOM loaded, setting up auth listener...');
     
-    if (session) {
-      currentUser = session.user;
-      if (loginModal) loginModal.classList.remove('active');
-      if (app) app.style.display = 'block';
-      await initializeApp(); // ✅ الآن يمكن استخدام await
-      showAlert(`Welcome back!`, 'success');
-    } else {
-      currentUser = null;
-      currentSessionId = null;
-      allSessions = {};
-      if (loginModal) loginModal.classList.add('active');
-      if (app) app.style.display = 'none';
+    const loginModal = document.getElementById('loginModal');
+    const app = document.querySelector('.app');
+    
+    // Check if we're coming back from OAuth (URL might have tokens)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuthParams = urlParams.has('code') || urlParams.has('error');
+    
+    if (hasAuthParams) {
+        // We're in the middle of OAuth flow, let auth-callback.html handle it
+        console.log('🔄 OAuth flow detected, redirecting to callback handler...');
+        window.location.href = '/auth-callback.html' + window.location.search;
+        return;
     }
-  });
-  
-  initLoginSystem();
+    
+    // Check for existing session
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+            console.error('Error getting session:', error);
+        }
+        
+        if (session) {
+            console.log('✅ Existing session found');
+            currentUser = session.user;
+            if (loginModal) loginModal.classList.remove('active');
+            if (app) app.style.display = 'block';
+            await initializeApp();
+        } else {
+            console.log('❌ No session found');
+            if (loginModal) loginModal.classList.add('active');
+            if (app) app.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error in initial auth check:', error);
+        if (loginModal) loginModal.classList.add('active');
+        if (app) app.style.display = 'none';
+    }
+    
+    // Listen for auth state changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event, session);
+        
+        if (session) {
+            currentUser = session.user;
+            if (loginModal) loginModal.classList.remove('active');
+            if (app) app.style.display = 'block';
+            
+            // Only initialize if not already initialized
+            if (!window.appInitialized) {
+                await initializeApp();
+                window.appInitialized = true;
+            }
+            
+            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+        } else {
+            currentUser = null;
+            currentSessionId = null;
+            allSessions = {};
+            window.appInitialized = false;
+            if (loginModal) loginModal.classList.add('active');
+            if (app) app.style.display = 'none';
+        }
+    });
+    
+    initLoginSystem();
 });
