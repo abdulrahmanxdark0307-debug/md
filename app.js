@@ -2700,21 +2700,18 @@ function initLoginSystem() {
 }
 
 async function handleDiscordLogin() {
-  console.log('Starting Discord login...');
-  
   try {
-    // الحصول على URL الحالي للتوجيه
-    const currentUrl = window.location.origin;
-    console.log('Redirect URL:', currentUrl);
-    
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
-      options: {
-        redirectTo: currentUrl,
-        scopes: 'identify email guilds',
-        skipBrowserRedirect: false
-      }
     });
+    
+    if (error) throw error;
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Error: ' + error.message);
+  }
+}
     
     if (error) {
       console.error('OAuth Error Details:', error);
