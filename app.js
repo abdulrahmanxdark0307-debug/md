@@ -1,4 +1,66 @@
-
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('📄 DOM loaded, setting up auth listener...');
+    
+    const loginModal = document.getElementById('loginModal');
+    const app = document.querySelector('.app');
+    
+    // First, check if we have a session from OAuth callback
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+            console.error('Error getting session:', error);
+        }
+        
+        console.log('🔐 Initial session check:', session ? 'Found' : 'Not found');
+        
+        if (session) {
+            console.log('✅ User is authenticated');
+            currentUser = session.user;
+            if (loginModal) loginModal.classList.remove('active');
+            if (app) app.style.display = 'block';
+            await initializeApp();
+            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+        } else {
+            console.log('❌ No session found');
+            if (loginModal) loginModal.classList.add('active');
+            if (app) app.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error in initial auth check:', error);
+        if (loginModal) loginModal.classList.add('active');
+        if (app) app.style.display = 'none';
+    }
+    
+    // Listen for future auth state changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event);
+        
+        if (session) {
+            currentUser = session.user;
+            if (loginModal) loginModal.classList.remove('active');
+            if (app) app.style.display = 'block';
+            
+            if (event === 'SIGNED_IN') {
+                // Only initialize if not already initialized
+                if (!window.appInitialized) {
+                    await initializeApp();
+                    window.appInitialized = true;
+                }
+                showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+            }
+        } else {
+            currentUser = null;
+            currentSessionId = null;
+            allSessions = {};
+            window.appInitialized = false;
+            if (loginModal) loginModal.classList.add('active');
+            if (app) app.style.display = 'none';
+        }
+    });
+    
+    initLoginSystem();
+});
 // Track if app is initialized
 window.appInitialized = false;
 
