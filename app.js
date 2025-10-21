@@ -17,27 +17,27 @@ if (typeof Chart === 'undefined') {
 
 // كود Supabase الأساسي مع معالجة الأخطاء
 // كود Supabase الأساسي مع معالجة الأخطاء
+// كود Supabase الأساسي مع معالجة الأخطاء
 let supabase;
 
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0'; // استخدم المفتاح الصحيح
+  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0'; // تأكد من المفتاح الصحيح
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
   }
   
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log('Supabase client created successfully');
-  
-  // اختبر الاتصال
-  supabase.auth.getSession().then(({ data, error }) => {
-    if (error) {
-      console.error('Supabase connection test failed:', error);
-    } else {
-      console.log('Supabase connection successful');
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce'
     }
   });
+  
+  console.log('Supabase client created successfully');
   
 } catch (error) {
   console.error('Error initializing Supabase:', error);
@@ -2700,17 +2700,38 @@ function initLoginSystem() {
 }
 
 async function handleDiscordLogin() {
-  console.log('Discord login button clicked');
+  console.log('Starting Discord login...');
   
   try {
-    console.log('Starting Discord OAuth...');
-    const result = await signInWithDiscord();
-    console.log('OAuth result:', result);
+    // الحصول على URL الحالي للتوجيه
+    const currentUrl = window.location.origin;
+    console.log('Redirect URL:', currentUrl);
     
-    showAlert('Redirecting to Discord...', 'info');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: currentUrl,
+        scopes: 'identify email guilds',
+        skipBrowserRedirect: false
+      }
+    });
+    
+    if (error) {
+      console.error('OAuth Error Details:', error);
+      
+      if (error.message.includes('database')) {
+        showAlert('Database error. Please contact support.', 'error');
+      } else {
+        showAlert('Login failed: ' + error.message, 'error');
+      }
+      return;
+    }
+    
+    console.log('OAuth successful, redirecting...');
+    
   } catch (error) {
-    console.error('Login process error:', error);
-    showAlert('Login failed: ' + error.message, 'error');
+    console.error('Unexpected error during login:', error);
+    showAlert('An unexpected error occurred. Please try again.', 'error');
   }
 }
 
