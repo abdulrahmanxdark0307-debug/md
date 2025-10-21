@@ -284,30 +284,24 @@ async function handleLogout() {
 
 
 async function signInWithDiscord() {
-    console.log('🔄 Starting Discord OAuth...');
+    console.log('🔄 Starting custom Discord OAuth...');
     
     try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'discord',
-            options: {
-                redirectTo: window.location.origin, // Let Supabase handle the redirect
-                scopes: 'identify email'
-            }
-        });
+        const clientId = '1430000600275222559'; // استبدل بـ Client ID تطبيقك
+        const redirectUri = encodeURIComponent('https://masterdueltracker.vercel.app/auth/callback');
+        const scope = encodeURIComponent('identify email');
         
-        if (error) {
-            console.error('❌ Discord OAuth Error:', error);
-            showAlert('OAuth Error: ' + error.message, 'error');
-            return null;
-        }
+        // بناء رابط Discord OAuth مباشرة
+        const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
         
-        console.log('✅ OAuth initiated successfully');
-        return data;
+        console.log('🔗 Redirecting to Discord:', discordAuthUrl);
+        
+        // توجيه المستخدم إلى Discord
+        window.location.href = discordAuthUrl;
         
     } catch (error) {
-        console.error('❌ Unexpected error in signInWithDiscord:', error);
-        showAlert('Unexpected error: ' + error.message, 'error');
-        return null;
+        console.error('❌ Error starting Discord OAuth:', error);
+        showAlert('Error starting login process', 'error');
     }
 }
 
@@ -3474,67 +3468,126 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loginModal = document.getElementById('loginModal');
     const app = document.querySelector('.app');
     
-    // Check if we're coming back from OAuth (URL might have tokens)
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasAuthParams = urlParams.has('code') || urlParams.has('error');
-    
-    if (hasAuthParams) {
-        // We're in the middle of OAuth flow, let auth-callback.html handle it
-        console.log('🔄 OAuth flow detected, redirecting to callback handler...');
-        window.location.href = '/auth-callback.html' + window.location.search;
+    // إذا كنا في صفحة callback، لا ننفذ الكود الرئيسي
+    if (window.location.pathname.includes('auth/callback')) {
+        console.log('🔄 On callback page, skipping main app initialization');
         return;
     }
     
-    // Check for existing session
-    try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-            console.error('Error getting session:', error);
-        }
-        
-        if (session) {
-            console.log('✅ Existing session found');
-            currentUser = session.user;
-            if (loginModal) loginModal.classList.remove('active');
-            if (app) app.style.display = 'block';
-            await initializeApp();
-        } else {
-            console.log('❌ No session found');
-            if (loginModal) loginModal.classList.add('active');
-            if (app) app.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Error in initial auth check:', error);
-        if (loginModal) loginModal.classList.add('active');
-        if (app) app.style.display = 'none';
+    // تنظيف URL من أي معلمات OAuth
+    if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('🧹 Cleaned URL parameters');
     }
-    
-    // Listen for auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session);
-        
-        if (session) {
-            currentUser = session.user;
-            if (loginModal) loginModal.classList.remove('active');
-            if (app) app.style.display = 'block';
+
+    async function initializeAppForUser(user) {
+        try {
+            console.log('🚀 Initializing app for authenticated user...');
             
-            // Only initialize if not already initialized
-            if (!window.appInitialized) {
-                await initializeApp();
-                window.appInitialized = true;
+            currentUser = user;
+            
+            // Initialize all app components
+            initSettings();
+            await initArchive();
+            initDeckSimulator();
+            initDeckCalculator();
+            
+            await renderAll();
+            await setupEventListeners();
+            
+            // Show the main app interface
+            if (loginModal) loginModal.style.display = 'none';
+            if (app) {
+                app.style.display = 'block';
+                app.style.opacity = '1';
             }
             
-            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
-        } else {
-            currentUser = null;
-            currentSessionId = null;
-            allSessions = {};
-            window.appInitialized = false;
-            if (loginModal) loginModal.classList.add('active');
-            if (app) app.style.display = 'none';
+            console.log('✅ App initialized successfully');
+            window.appInitialized = true;
+            
+            // إخفاء أي عناصر loading إضافية
+            const loadingElements = document.querySelectorAll('.loading, [aria-label="Loading"]');
+            loadingElements.forEach(el => el.style.display = 'none');
+            
+        } catch (error) {
+            console.error('❌ Error initializing app:', error);
+            showAlert('Error loading application. Please refresh the page.', 'error');
+        }
+    }
+
+    function showLoginScreen() {
+        console.log('👤 Showing login screen');
+        if (loginModal) {
+            loginModal.style.display = 'flex';
+            loginModal.classList.add('active');
+        }
+        if (app) {
+            app.style.display = 'none';
+            app.style.opacity = '0';
+        }
+        currentUser = null;
+        window.appInitialized = false;
+    }
+
+    // التحقق من حالة المصادقة الحالية
+    async function checkAuthStatus() {
+        try {
+            console.log('🔐 Checking authentication status...');
+            
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) {
+                console.error('Session error:', error);
+                throw error;
+            }
+            
+            if (session && session.user) {
+                console.log('✅ User is authenticated:', session.user.email);
+                await initializeAppForUser(session.user);
+                return true;
+            } else {
+                console.log('❌ No active session found');
+                showLoginScreen();
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            showLoginScreen();
+            return false;
+        }
+    }
+
+    // الاستماع لتغيرات حالة المصادقة
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event);
+        
+        if (event === 'SIGNED_IN' && session) {
+            console.log('✅ User signed in successfully');
+            
+            if (!window.appInitialized) {
+                await initializeAppForUser(session.user);
+            }
+            
+            showAlert(`Welcome to Duelist Tracker, ${session.user.email || 'User'}!`, 'success');
+            
+        } else if (event === 'SIGNED_OUT') {
+            console.log('🚪 User signed out');
+            showLoginScreen();
+            showAlert('You have been logged out', 'info');
+            
+        } else if (event === 'INITIAL_SESSION' && session) {
+            console.log('🔄 Initial session detected');
+            // لا تفعل شيئاً هنا - دع checkAuthStatus يتعامل معها
         }
     });
+
+    // التحقق الأولي من المصادقة
+    await checkAuthStatus();
     
+    // Initialize login system
     initLoginSystem();
+    
+    console.log('✅ App setup completed');
 });
