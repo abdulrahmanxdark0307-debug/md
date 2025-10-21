@@ -3215,14 +3215,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginModal = document.getElementById('loginModal');
   const app = document.querySelector('.app');
   
-  supabase.auth.onAuthStateChange( (event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => { // ✅ أضف async هنا
     console.log('🔐 Auth state changed:', event, session);
     
     if (session) {
       currentUser = session.user;
       if (loginModal) loginModal.classList.remove('active');
       if (app) app.style.display = 'block';
-      await initializeApp();
+      await initializeApp(); // ✅ الآن يمكن استخدام await
       showAlert(`Welcome back!`, 'success');
     } else {
       currentUser = null;
