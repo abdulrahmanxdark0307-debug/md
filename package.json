@@ -1,8 +1,0 @@
-{
-  "name": "duelist-tracker",
-  "version": "1.0.0", 
-  "scripts": {
-    "build": "mkdir -p public && echo 'Build complete'"
-  },
-  "devDependencies": {}
-}
