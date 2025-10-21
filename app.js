@@ -1996,7 +1996,7 @@ archivePlayerSelect.addEventListener('change', async () => {
   }
 });
   
-  refreshArchiveBtn.addEventListener('click',  () => {
+  refreshArchiveBtn.addEventListener('click', async () => {
     await loadPlayersForArchive();
     const currentUserId = archivePlayerSelect.value;
     if (currentUserId) {
