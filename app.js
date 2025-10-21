@@ -41,6 +41,28 @@ try {
   console.error('Error initializing Supabase:', error);
 }
 
+async function handleOAuthRedirect() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error('Session error:', error);
+    return;
+  }
+
+  const { session } = data;
+  if (session) {
+    console.log('✅ Logged in as', session.user.email || session.user.id);
+    document.querySelector('.app').style.display = 'block';
+    document.getElementById('authSection').style.display = 'none';
+  } else {
+    console.log('❌ No session found, showing login');
+    document.querySelector('.app').style.display = 'none';
+    document.getElementById('authSection').style.display = 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', handleOAuthRedirect);
+
+
 // Constants
 const START_POINTS_RATED = 1500;
 const START_POINTS_DC = 0;
@@ -130,7 +152,7 @@ async function signInWithDiscord() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: currentUrl,
+        redirectTo: window.location.origin,
         scopes: 'identify email'
       }
     });
