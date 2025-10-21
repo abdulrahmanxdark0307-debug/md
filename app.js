@@ -34,6 +34,8 @@ try {
       flowType: 'pkce'
     }
   });
+  console.log("🔑 Supabase client initialized with key:", SUPABASE_ANON_KEY);
+
   
   console.log('Supabase client created successfully');
   
