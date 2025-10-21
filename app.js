@@ -20,7 +20,7 @@ let supabase;
 
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhemtwcmh0ZHRsaXhwZHZwemJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU2Mjg0ODcsImV4cCI6MjA0MTIwNDQ4N30.8DdS1N_4J8Xqz_YsP6L5H0jv8Y9rS6V3Q7w6Q2q9k9Y';
+  const SUPABASE_ANON_KEY = 'sb_publishable_Xcw9LBFvQLejpAnKxcxRfHg_0DCd3PT0';
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
