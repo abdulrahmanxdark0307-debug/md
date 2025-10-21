@@ -16,20 +16,32 @@ if (typeof Chart === 'undefined') {
 }
 
 // كود Supabase الأساسي مع معالجة الأخطاء
+// كود Supabase الأساسي مع معالجة الأخطاء
+let supabase;
+
 try {
   const SUPABASE_URL = 'https://jazkprhtdtlixpdvpzbv.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0';
+  const SUPABASE_ANON_KEY = 'sb_publishable_XCw9LBFvQLejpAnKxcRfHg_0DCd3PT0'; // استخدم المفتاح الصحيح
   
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing');
   }
   
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   console.log('Supabase client created successfully');
+  
+  // اختبر الاتصال
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+    } else {
+      console.log('Supabase connection successful');
+    }
+  });
+  
 } catch (error) {
   console.error('Error initializing Supabase:', error);
 }
-
 
 // Constants
 const START_POINTS_RATED = 1500;
@@ -2679,11 +2691,17 @@ function initLoginSystem() {
 }
 
 async function handleDiscordLogin() {
+  console.log('Discord login button clicked');
+  
   try {
-    await signInWithDiscord();
-    showAlert('Redirecting to Discord for authentication...', 'info');
+    console.log('Starting Discord OAuth...');
+    const result = await signInWithDiscord();
+    console.log('OAuth result:', result);
+    
+    showAlert('Redirecting to Discord...', 'info');
   } catch (error) {
-    showAlert('Failed to sign in with Discord', 'error');
+    console.error('Login process error:', error);
+    showAlert('Login failed: ' + error.message, 'error');
   }
 }
 
@@ -2701,14 +2719,20 @@ async function signInWithDiscord() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: window.location.origin,
+        scopes: 'identify email'
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Discord OAuth error:', error);
+      throw error;
+    }
+    
     return data;
   } catch (error) {
     console.error('Discord login error:', error);
+    showAlert('Failed to connect with Discord. Please try again.', 'error');
     throw error;
   }
 }
