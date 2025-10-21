@@ -49,10 +49,10 @@ async function handleOAuthRedirect() {
   }
 
   const appEl = document.querySelector('.app');
-  const authEl = document.getElementById('authSection');
+  const authEl = document.getElementById('loginModal');
 
   if (!appEl || !authEl) {
-    console.warn('⚠️ Missing app or authSection elements.');
+    console.warn('⚠️ Missing app or loginModal elements.');
     return;
   }
 
