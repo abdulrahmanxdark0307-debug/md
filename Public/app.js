@@ -61,17 +61,6 @@ const defaultSettings = {
 
 // DOM refs
 const loginModal = document.getElementById('loginModal');
-const loginTabs = document.querySelectorAll('.login-tab');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-const loginUsername = document.getElementById('loginUsername');
-const loginPassword = document.getElementById('loginPassword');
-const registerUsername = document.getElementById('registerUsername');
-const registerPassword = document.getElementById('registerPassword');
-const registerConfirmPassword = document.getElementById('registerConfirmPassword');
-const loginSubmitBtn = document.getElementById('loginSubmitBtn');
-const registerSubmitBtn = document.getElementById('registerSubmitBtn');
-const loginError = document.getElementById('loginError');
 const logoutBtn = document.getElementById('logoutBtn');
 const app = document.querySelector('.app');
 
