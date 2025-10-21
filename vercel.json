@@ -16,35 +16,8 @@
   ],
   "routes": [
     {
-      "src": "/app\\.js",
-      "headers": {
-        "Cache-Control": "public, max-age=3600",
-        "Content-Type": "application/javascript"
-      }
-    },
-    {
-      "src": "/styles\\.css",
-      "headers": {
-        "Cache-Control": "public, max-age=3600",
-        "Content-Type": "text/css"
-      }
-    },
-    {
-      "src": "/auth-callback\\.html",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      }
-    },
-    {
-      "src": "/auth/callback",
-      "dest": "/auth-callback.html"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      }
+      "dest": "/index.html"
     }
   ]
 }
