@@ -43,7 +43,7 @@ try {
   console.error('Error initializing Supabase:', error);
 }
 
-async function handleOAuthRedirect() {
+function handleOAuthRedirect() {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
     console.error('Session error:', error);
@@ -104,12 +104,12 @@ const defaultSettings = {
 
 // ==================== نظام المستخدمين مع Supabase ====================
 
-async function getCurrentSessionUser() {
+function getCurrentSessionUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
 }
 
-async function logoutUser() {
+function logoutUser() {
   const { error } = await supabase.auth.signOut();
   if (error) console.error('Logout error:', error);
 }
@@ -135,7 +135,7 @@ function initLoginSystem() {
   }
 }
 
-async function handleDiscordLogin() {
+ function handleDiscordLogin() {
   console.log('🎯 handleDiscordLogin called');
   
   try {
@@ -148,13 +148,13 @@ async function handleDiscordLogin() {
   }
 }
 
-async function handleLogout() {
+ function handleLogout() {
   if (confirm('Are you sure you want to logout?')) {
     await logoutUser();
   }
 }
 
-async function signInWithDiscord() {
+ function signInWithDiscord() {
   console.log('🔄 Starting Discord OAuth...');
   
   try {
@@ -186,7 +186,7 @@ async function signInWithDiscord() {
 
 // ==================== نظام إدارة الجلسات مع Supabase ====================
 
-async function loadUserSessions(userId) {
+function loadUserSessions(userId) {
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
@@ -216,7 +216,7 @@ async function loadUserSessions(userId) {
   return sessions;
 }
 
-async function saveUserSession(session, userId) {
+ function saveUserSession(session, userId) {
   const sessionData = {
     user_id: userId,
     name: session.name,
@@ -265,7 +265,7 @@ async function saveUserSession(session, userId) {
   }
 }
 
-async function deleteUserSession(sessionId) {
+function deleteUserSession(sessionId) {
   const { error } = await supabase
     .from('sessions')
     .delete()
@@ -276,7 +276,7 @@ async function deleteUserSession(sessionId) {
   delete allSessions[sessionId];
 }
 
-async function renameUserSession(sessionId, newName) {
+function renameUserSession(sessionId, newName) {
   const { error } = await supabase
     .from('sessions')
     .update({ name: newName })
@@ -291,7 +291,7 @@ async function renameUserSession(sessionId, newName) {
 
 // ==================== نظام قوائم المجموعات مع Supabase ====================
 
-async function loadUserDeckLists(userId) {
+function loadUserDeckLists(userId) {
   const { data, error } = await supabase
     .from('deck_lists')
     .select('*')
@@ -319,7 +319,7 @@ async function loadUserDeckLists(userId) {
   }));
 }
 
-async function saveUserDeckList(deckList, userId) {
+function saveUserDeckList(deckList, userId) {
   const deckListData = {
     user_id: userId,
     name: deckList.name,
@@ -350,7 +350,7 @@ async function saveUserDeckList(deckList, userId) {
   }
 }
 
-async function deleteUserDeckList(deckListId) {
+ function deleteUserDeckList(deckListId) {
   const { error } = await supabase
     .from('deck_lists')
     .delete()
@@ -361,7 +361,7 @@ async function deleteUserDeckList(deckListId) {
 
 // ==================== نظام إدارة الجلسات ====================
 
-async function populateSessionSelect() {
+ function populateSessionSelect() {
   if (!currentUser) return;
   
   await loadUserSessions(currentUser.id);
@@ -386,7 +386,7 @@ async function populateSessionSelect() {
   }
 }
 
-async function populateDecks() {
+ function populateDecks() {
   if (!currentUser || !currentSessionId) return;
   
   const currentSession = allSessions[currentSessionId];
@@ -419,7 +419,7 @@ async function populateDecks() {
   }
 }
 
-async function renderMatches() {
+ function renderMatches() {
   if (!currentUser || !currentSessionId) return;
   
   const currentSession = allSessions[currentSessionId];
@@ -507,7 +507,7 @@ function recalcSession(session) {
   session.peakPoints = peak;
 }
 
-async function addMatch() {
+ function addMatch() {
   if (!currentUser || !currentSessionId) return;
   
   const currentSession = allSessions[currentSessionId];
@@ -580,7 +580,7 @@ async function addMatch() {
   checkConsecutiveLosses(currentSession);
 }
 
-async function createSession(name) {
+ function createSession(name) {
   if (!currentUser) return;
   
   const settings = loadSettings();
@@ -1928,7 +1928,7 @@ function calculateDeckProbabilities() {
 
 // ==================== نظام الأرشيف ====================
 
-async function loadAllPlayers() {
+ function loadAllPlayers() {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('user_id, username, created_at, last_active')
@@ -1942,7 +1942,7 @@ async function loadAllPlayers() {
   return data;
 }
 
-async function loadPlayerData(userId) {
+ function loadPlayerData(userId) {
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select('*')
@@ -1976,7 +1976,7 @@ async function loadPlayerData(userId) {
   };
 }
 
-async function initArchive() {
+ function initArchive() {
   await loadPlayersForArchive();
   
   const archivePlayerSelect = document.getElementById('archivePlayerSelect');
@@ -1984,7 +1984,7 @@ async function initArchive() {
   
   if (!archivePlayerSelect || !refreshArchiveBtn) return;
   
-  archivePlayerSelect.addEventListener('change', async () => {
+  archivePlayerSelect.addEventListener('change',  () => {
     const userId = archivePlayerSelect.value;
     if (userId) {
       await loadPlayerArchive(userId);
@@ -1996,7 +1996,7 @@ async function initArchive() {
     }
   });
   
-  refreshArchiveBtn.addEventListener('click', async () => {
+  refreshArchiveBtn.addEventListener('click',  () => {
     await loadPlayersForArchive();
     const currentUserId = archivePlayerSelect.value;
     if (currentUserId) {
@@ -2005,7 +2005,7 @@ async function initArchive() {
   });
 }
 
-async function loadPlayersForArchive() {
+ function loadPlayersForArchive() {
   const players = await loadAllPlayers();
   const archivePlayerSelect = document.getElementById('archivePlayerSelect');
   
@@ -2020,7 +2020,7 @@ async function loadPlayersForArchive() {
   });
 }
 
-async function loadPlayerArchive(userId) {
+ function loadPlayerArchive(userId) {
   const playerData = await loadPlayerData(userId);
   const archiveContent = document.getElementById('archiveContent');
   const archiveEmpty = document.getElementById('archiveEmpty');
@@ -2268,7 +2268,7 @@ function renderArchiveMatches(matches) {
 
 // ==================== نظام قوائم المجموعات ====================
 
-async function renderDeckLists() {
+ function renderDeckLists() {
   if (!currentUser) return;
   
   const deckListsContainer = document.getElementById('deckListsContainer');
@@ -2380,7 +2380,7 @@ async function renderDeckLists() {
   });
   
   document.querySelectorAll('.delete-btn[data-deck-id]').forEach(btn => {
-    btn.addEventListener('click', async function() {
+    btn.addEventListener('click',  function() {
       const deckId = this.dataset.deckId;
       const deckName = this.closest('.deck-list-card').querySelector('.deck-list-header div:first-child').textContent;
       
@@ -2398,7 +2398,7 @@ async function renderDeckLists() {
   });
 }
 
-async function updateDeckListStats(deckLists) {
+ function updateDeckListStats(deckLists) {
   let allMatches = [];
   Object.values(allSessions).forEach(session => {
     allMatches = allMatches.concat(session.matches);
@@ -2697,7 +2697,7 @@ function checkConsecutiveLosses(session) {
 
 // ==================== نظام التصدير والاستيراد ====================
 
-async function exportSession() {
+ function exportSession() {
   if (!currentUser || !currentSessionId) return;
   
   const session = allSessions[currentSessionId];
@@ -2710,7 +2710,7 @@ async function exportSession() {
   URL.revokeObjectURL(url);
 }
 
-async function exportAll() {
+ function exportAll() {
   if (!currentUser) return;
   
   const blob = new Blob([JSON.stringify(allSessions, null, 2)], {type:'application/json'});
@@ -2722,9 +2722,9 @@ async function exportAll() {
   URL.revokeObjectURL(url);
 }
 
-async function importSession(file) {
+ function importSession(file) {
   const fr = new FileReader();
-  fr.onload = async e => {
+  fr.onload =  e => {
     try{
       const parsed = JSON.parse(e.target.result);
       
@@ -2850,7 +2850,7 @@ function hideSessionModal() {
   if (sessionModal) sessionModal.classList.remove('active');
 }
 
-async function createSessionFromModal() {
+ function createSessionFromModal() {
   const sessionNameInput = document.getElementById('sessionNameInput');
   const sessionFormulaSelect = document.getElementById('sessionFormulaSelect');
   const sessionStartPoints = document.getElementById('sessionStartPoints');
@@ -2920,7 +2920,7 @@ function hideDeckListModal() {
   if (deckListModal) deckListModal.classList.remove('active');
 }
 
-async function addDeckListFromModal() {
+ function addDeckListFromModal() {
   const deckListName = document.getElementById('deckListName');
   const deckListImage = document.getElementById('deckListImage');
   const deckListDescription = document.getElementById('deckListDescription');
@@ -2959,7 +2959,7 @@ async function addDeckListFromModal() {
 
 // ==================== تهيئة التطبيق ====================
 
-async function initializeApp() {
+ function initializeApp() {
   console.log('🚀 Initializing application...');
   
   initSettings();
@@ -2973,7 +2973,7 @@ async function initializeApp() {
   console.log('✅ Application initialized successfully');
 }
 
-async function renderAll() {
+ function renderAll() {
   await populateSessionSelect();
   await populateDecks();
   await renderMatches();
@@ -2989,7 +2989,7 @@ function setupEventListeners() {
   const clearSessionBtn = document.getElementById('clearSessionBtn');
   
   if (sessionSelect) {
-    sessionSelect.addEventListener('change', async () => {
+    sessionSelect.addEventListener('change',  () => {
       currentSessionId = sessionSelect.value;
       await populateDecks();
       await renderMatches();
@@ -3001,7 +3001,7 @@ function setupEventListeners() {
   }
   
   if (clearSessionBtn) {
-    clearSessionBtn.addEventListener('click', async () => {
+    clearSessionBtn.addEventListener('click',  () => {
       if (!currentUser || !currentSessionId) return;
       
       if (!confirm('Clear all matches in current session?')) return;
@@ -3215,7 +3215,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginModal = document.getElementById('loginModal');
   const app = document.querySelector('.app');
   
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabase.auth.onAuthStateChange( (event, session) => {
     console.log('🔐 Auth state changed:', event, session);
     
     if (session) {
