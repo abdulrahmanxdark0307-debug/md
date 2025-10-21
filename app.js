@@ -2710,7 +2710,6 @@ function initLoginSystem() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
   }
-}
 
 async function handleDiscordLogin() {
   console.log('🎯 handleDiscordLogin called');
