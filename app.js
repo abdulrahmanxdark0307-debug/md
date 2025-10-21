@@ -1,20 +1,24 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    
+    cleanURL();
     console.log('📄 DOM loaded, setting up auth listener...');
     
     const loginModal = document.getElementById('loginModal');
     const app = document.querySelector('.app');
     
-    // If we're on the callback page, don't run the main app logic
-    if (window.location.pathname.includes('auth-callback') || window.location.pathname.includes('auth/callback')) {
-        console.log('🔄 On callback page, skipping main app initialization');
-        return;
+    // Remove any OAuth parameters from URL to prevent loops
+    if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+        console.log('🧹 Cleaning OAuth parameters from URL');
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    async function initializeAppForUser() {
+    async function initializeAppForUser(user) {
         try {
-            console.log('🚀 Initializing app for authenticated user...');
+            console.log('🚀 Initializing app for user:', user.email);
             
-            // Initialize all app components
+            currentUser = user;
+            
+            // Initialize all components
             initSettings();
             await initArchive();
             initDeckSimulator();
@@ -23,8 +27,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             await renderAll();
             await setupEventListeners();
             
-            // Show the main app interface
-            if (loginModal) loginModal.classList.remove('active');
+            // Show main app, hide login
+            if (loginModal) loginModal.style.display = 'none';
             if (app) app.style.display = 'block';
             
             console.log('✅ App initialized successfully');
@@ -32,72 +36,95 @@ document.addEventListener('DOMContentLoaded', async function() {
             
         } catch (error) {
             console.error('❌ Error initializing app:', error);
-        }
-    }
-
-    async function checkAuthState() {
-        try {
-            console.log('🔐 Checking authentication state...');
-            
-            const { data: { session }, error } = await supabase.auth.getSession();
-            
-            if (error) {
-                console.error('Error getting session:', error);
-                showLoginScreen();
-                return;
-            }
-            
-            if (session && session.user) {
-                console.log('✅ User is authenticated:', session.user.email);
-                currentUser = session.user;
-                await initializeAppForUser();
-                showAlert(`Welcome to Duelist Tracker, ${session.user.email || 'User'}!`, 'success');
-            } else {
-                console.log('❌ No active session found');
-                showLoginScreen();
-            }
-            
-        } catch (error) {
-            console.error('Error in auth check:', error);
-            showLoginScreen();
+            showAlert('Error loading application', 'error');
         }
     }
 
     function showLoginScreen() {
         console.log('👤 Showing login screen');
-        if (loginModal) loginModal.classList.add('active');
+        const loginModal = document.getElementById('loginModal');
+        const app = document.querySelector('.app');
+        
+        if (loginModal) loginModal.style.display = 'flex';
         if (app) app.style.display = 'none';
+        
         currentUser = null;
         window.appInitialized = false;
     }
 
-    // Listen for auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event);
-        
-        if (event === 'SIGNED_IN' && session) {
-            console.log('✅ User signed in');
-            currentUser = session.user;
+    // Check current authentication state
+    async function checkAuthStatus() {
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession();
             
-            if (!window.appInitialized) {
-                await initializeAppForUser();
+            if (error) {
+                console.error('Session error:', error);
+                showLoginScreen();
+                return;
             }
             
-            showAlert(`Welcome back, ${session.user.email || 'User'}!`, 'success');
+            if (session?.user) {
+                console.log('✅ User already authenticated');
+                await initializeAppForUser(session.user);
+            } else {
+                console.log('❌ No active session');
+                showLoginScreen();
+            }
+        } catch (error) {
+            console.error('Auth check error:', error);
+            showLoginScreen();
+        }
+    }
+
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state change:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ User signed in successfully');
+            if (!window.appInitialized) {
+                await initializeAppForUser(session.user);
+            }
+            showAlert(`Welcome to Duelist Tracker!`, 'success');
             
         } else if (event === 'SIGNED_OUT') {
             console.log('🚪 User signed out');
             showLoginScreen();
             showAlert('You have been logged out', 'info');
+            
+        } else if (event === 'INITIAL_SESSION' && session?.user) {
+            console.log('🔄 Initial session detected');
+            if (!window.appInitialized) {
+                await initializeAppForUser(session.user);
+            }
         }
     });
 
-    // Initial auth check
-    await checkAuthState();
-    
-    // Initialize login system
+    // Initial check
+    await checkAuthStatus();
     initLoginSystem();
 });
+// دالة تنظيف
+
+function cleanURL() {
+    // Remove OAuth parameters from URL without page reload
+    const url = new URL(window.location);
+    const params = new URLSearchParams(url.search);
+    
+    if (params.has('code') || params.has('error') || params.has('access_token') || params.has('refresh_token')) {
+        params.delete('code');
+        params.delete('error');
+        params.delete('error_description');
+        params.delete('access_token');
+        params.delete('refresh_token');
+        params.delete('token_type');
+        params.delete('expires_in');
+        
+        url.search = params.toString();
+        window.history.replaceState({}, document.title, url.toString());
+        console.log('🧹 Cleaned OAuth parameters from URL');
+    }
+}
 
 // تحقق من أن الملف يحمل كـ JavaScript
 
