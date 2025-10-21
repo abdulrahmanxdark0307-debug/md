@@ -2379,19 +2379,21 @@ async function renderDeckLists() {
     deckListsContainer.appendChild(deckListCard);
   });
   
-  document.querySelectorAll('.delete-btn[data-deck-id]').forEach(btn => {
-    btn.addEventListener('click',  function() {
-      const deckId = this.dataset.deckId;
-      const deckName = this.closest('.deck-list-card').querySelector('.deck-list-header div:first-child').textContent;
-      
-      if (confirm(`Are you sure you want to delete "${deckName}"? This action cannot be undone.`)) {
-        try {
-          await deleteUserDeckList(deckId);
-          await renderDeckLists();
-          showAlert('Deck list deleted successfully', 'success');
-        } catch (error) {
-          console.error('Error deleting deck list:', error);
-          showAlert('Error deleting deck list', 'error');
+document.querySelectorAll('.delete-btn[data-deck-id]').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const deckId = this.dataset.deckId;
+    const deckName = this.closest('.deck-list-card')
+                         .querySelector('.deck-list-header div:first-child')
+                         .textContent;
+
+    if (confirm(`Are you sure you want to delete "${deckName}"? This action cannot be undone.`)) {
+      try {
+        await deleteUserDeckList(deckId);
+        await renderDeckLists();
+        showAlert('Deck list deleted successfully', 'success');
+      } catch (error) {
+        console.error('Error deleting deck list:', error);
+        showAlert('Error deleting deck list', 'error');
         }
       }
     });
