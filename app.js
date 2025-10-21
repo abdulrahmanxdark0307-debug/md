@@ -2681,13 +2681,22 @@ async function importSession(file) {
 // ==================== نظام تسجيل الدخول (Discord) ====================
 
 function initLoginSystem() {
+  console.log('Initializing login system...');
+  
   const discordLoginBtn = document.getElementById('discordLoginBtn');
+  console.log('Discord button found:', discordLoginBtn);
   
   if (discordLoginBtn) {
     discordLoginBtn.addEventListener('click', handleDiscordLogin);
+    console.log('Event listener added to Discord button');
+  } else {
+    console.error('Discord login button not found!');
   }
   
-  logoutBtn.addEventListener('click', handleLogout);
+  // تأكد من أن logoutBtn موجود
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
 }
 
 async function handleDiscordLogin() {
