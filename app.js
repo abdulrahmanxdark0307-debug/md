@@ -48,19 +48,28 @@ async function handleOAuthRedirect() {
     return;
   }
 
+  const appEl = document.querySelector('.app');
+  const authEl = document.getElementById('authSection');
+
+  if (!appEl || !authEl) {
+    console.warn('⚠️ Missing app or authSection elements.');
+    return;
+  }
+
   const { session } = data;
   if (session) {
-    console.log('✅ Logged in as', session.user.email || session.user.id);
-    document.querySelector('.app').style.display = 'block';
-    document.getElementById('authSection').style.display = 'none';
+    console.log('✅ Logged in as', session.user?.email || session.user?.id);
+    appEl.style.display = 'block';
+    authEl.style.display = 'none';
   } else {
     console.log('❌ No session found, showing login');
-    document.querySelector('.app').style.display = 'none';
-    document.getElementById('authSection').style.display = 'block';
+    appEl.style.display = 'none';
+    authEl.style.display = 'block';
   }
 }
 
 document.addEventListener('DOMContentLoaded', handleOAuthRedirect);
+
 
 
 // Constants
