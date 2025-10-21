@@ -1538,14 +1538,14 @@ function initDeckSimulator() {
   }
   
   if (newDeckBtn) {
-    newDeckBtn.addEventListener('click', () => {
+    newDeckBtn.addEventListener('click', async () => {
       if (deckText) deckText.value = '# New Deck\n40 total\n\n# Add your cards here';
       if (deckPreset) deckPreset.value = 'custom';
     });
   }
   
   if (newComboBtn) {
-    newComboBtn.addEventListener('click', () => {
+    newComboBtn.addEventListener('click', async () => {
       if (comboText) comboText.value = '# New Combo\n\n# Add your combo requirements here';
       if (comboPreset) comboPreset.value = 'custom';
     });
@@ -1982,7 +1982,7 @@ async function initArchive() {
   
   if (!archivePlayerSelect || !refreshArchiveBtn) return;
   
-archivePlayerSelect.addEventListener('change', async () => {
+archivePlayerSelect.addEventListener('change', async async () => {
   const userId = archivePlayerSelect.value;
   if (userId) {
     await loadPlayerArchive(userId);
@@ -1994,7 +1994,7 @@ archivePlayerSelect.addEventListener('change', async () => {
   }
 });
   
-  refreshArchiveBtn.addEventListener('click', async () => {
+  refreshArchiveBtn.addEventListener('click', async async () => {
     await loadPlayersForArchive();
     const currentUserId = archivePlayerSelect.value;
     if (currentUserId) {
@@ -2633,9 +2633,9 @@ function showAlert(message, type = 'info') {
   
   document.body.appendChild(alertDiv);
   
-  setTimeout(() => {
+  setTimeout(async () => {
     alertDiv.style.opacity = '0';
-    setTimeout(() => {
+    setTimeout(async () => {
       document.body.removeChild(alertDiv);
     }, 300);
   }, 3000);
@@ -2891,7 +2891,7 @@ async function createSessionFromModal() {
   hideSessionModal();
   
   if (defaultDeck) {
-    setTimeout(() => {
+    setTimeout(async () => {
       const deckSelect = document.getElementById('deckSelect');
       if (deckSelect) {
         deckSelect.value = defaultDeck;
@@ -2989,7 +2989,7 @@ async function setupEventListeners() {
   const clearSessionBtn = document.getElementById('clearSessionBtn');
   
 if (sessionSelect) {
-  sessionSelect.addEventListener('change', async () => {
+  sessionSelect.addEventListener('change', async async () => {
     currentSessionId = sessionSelect.value;
     await populateDecks();
     await renderMatches();
@@ -3001,7 +3001,7 @@ if (sessionSelect) {
   }
   
   if (clearSessionBtn) {
-    clearSessionBtn.addEventListener('click',  () => {
+    clearSessionBtn.addEventListener('click', async async () => {
       if (!currentUser || !currentSessionId) return;
       
       if (!confirm('Clear all matches in current session?')) return;
@@ -3025,7 +3025,7 @@ if (sessionSelect) {
   const createSessionBtn = document.getElementById('createSessionBtn');
   
   if (openSessionsBtn) {
-    openSessionsBtn.addEventListener('click', () => {
+    openSessionsBtn.addEventListener('click', async () => {
       const sessionsTab = document.querySelector('.tab[data-tab="sessions"]');
       if (sessionsTab) sessionsTab.click();
     });
@@ -3073,7 +3073,7 @@ if (sessionSelect) {
   
   if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
   if (exportAllBtn2) exportAllBtn2.addEventListener('click', exportAll);
-  if (importSessionBtn) importSessionBtn.addEventListener('click', () => {
+  if (importSessionBtn) importSessionBtn.addEventListener('click', async () => {
     if (importFileInput) importFileInput.click();
   });
   if (importFileInput) {
@@ -3160,7 +3160,7 @@ if (sessionSelect) {
   const panels = document.querySelectorAll('.panel');
   
   tabs.forEach(t => {
-    t.addEventListener('click', () => {
+    t.addEventListener('click', async () => {
       tabs.forEach(x => x.classList.remove('active'));
       t.classList.add('active');
       const target = t.dataset.tab;
@@ -3171,7 +3171,7 @@ if (sessionSelect) {
           p.setAttribute('aria-hidden','false');
           
           if(target === 'stats') {
-            setTimeout(() => {
+            setTimeout(async () => {
               if (currentSessionId) {
                 const currentSession = allSessions[currentSessionId];
                 updateChart(currentSession);
@@ -3197,7 +3197,7 @@ if (sessionSelect) {
       });
       
       if(target === 'stats' && pointsChart) {
-        setTimeout(() => {
+        setTimeout(async () => {
           if (pointsChart) pointsChart.resize();
         }, 300);
       }
