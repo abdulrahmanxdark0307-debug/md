@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -11,137 +12,905 @@
 <script defer src="./app.js"></script>
 </head>
 <body>
-  <!-- 🔐 Login Section -->
-  <div id="authSection">
-    <button id="discordLoginBtn">Login with Discord</button>
-    <button id="logoutBtn" style="display:none;">Logout</button>
+  <!-- Login Modal -->
+<div id="loginModal" class="modal-overlay active">
+  <div class="modal-dialog login-modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Duelist Tracker Login</h3>
+    </div>
+    <div class="modal-body">
+      <div style="text-align: center; padding: 20px 0;">
+        <p style="margin-bottom: 20px; color: var(--muted);">Please login with Discord to continue</p>
+        <button id="discordLoginBtn" class="btn discord-btn">
+            <img src="https://unpkg.com/simple-icons@v5/icons/discord.svg" alt="Discord" style="width: 20px; height: 20px; margin-right: 8px;">
+                Login with Discord
+        </button>
+      </div>
+    </div>
   </div>
+</div>
 
   <div class="app" style="display:none">
     <div class="tabs" role="tablist" aria-label="Main tabs">
       <div class="tab active" data-tab="submit">Match Submission</div>
       <div class="tab" data-tab="stats">Stats & Matrix</div>
+      <div class="tab" data-tab="predictions">Predictions</div>
+      <div class="tab" data-tab="comparison">Deck Comparison</div>
       <div class="tab" data-tab="analysis">Advanced Analysis</div>
-      <div class="tab" data-tab="calc">Probability Calc</div>
-      <div class="tab" data-tab="simulator">Simulator</div>
-      <div class="tab" data-tab="archive">Archive</div>
+      <div class="tab" data-tab="calc">Deck Optimize</div>
+      <div class="tab" data-tab="simulator">Probability Simulator</div>
+      <div class="tab" data-tab="meta">Meta Feed</div>
+      <div class="tab" data-tab="sessions">Sessions</div>
+      <div class="tab" data-tab="deck-lists">Deck Lists</div>
       <div class="tab" data-tab="settings">Settings</div>
     </div>
 
     <div class="panels">
-
-      <!-- 🧑 User Info -->
-      <section id="panel-profile" class="panel">
-        <h3 id="usernameDisplay">Welcome!</h3>
-        <div id="pointsInfo">Points: 0</div>
-      </section>
-
-      <!-- ⚙️ Session Management -->
-      <section id="panel-submit" class="panel show">
-        <div id="sessionManager">
-          <select id="sessionSelect"></select>
-          <button onclick="createSession()">New Session</button>
-          <button id="deleteSessionBtn">Delete Session</button>
+      <section id="panel-submit" class="panel show" role="tabpanel" aria-labelledby="submit-tab">
+        <div class="session-row" style="margin-bottom:12px">
+          <select id="sessionSelect" class="session-select" aria-label="Select session"></select>
+          <button id="openSessionsBtn" class="btn-ghost">Manage Sessions</button>
+          <div style="flex:1"></div>
+          <div class="user-profile" id="userProfile">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div class="user-info">
+              <div class="user-name" id="userName">Local User</div>
+              <div class="user-rank" id="userRank">All data stored locally</div>
+            </div>
+            <button id="logoutBtn" class="btn-ghost">Logout</button>
+          </div>
         </div>
 
-        <div id="deckSelectors">
-          <label>My Deck:</label>
-          <select id="deckSelect"></select>
-          <label>Opponent Deck:</label>
-          <select id="oppSelect"></select>
-          <label>Result:</label>
-          <select id="resultSelect"><option>Win</option><option>Loss</option></select>
-          <label>Turn:</label>
-          <select id="turnOrder"><option>1st</option><option>2nd</option></select>
-          <input id="ptsAfterOverride" placeholder="Custom Points (optional)" />
-          <button onclick="addMatch()">Add Match</button>
+        <div class="input-panel" role="region" aria-label="Match input">
+          <div class="group">
+            <label class="small">Your Deck</label>
+            <div style="display:flex;gap:8px">
+              <select id="deckSelect" aria-label="Your deck"></select>
+              <button id="addDeckBtn" class="add-deck" title="Add deck">➕</button>
+            </div>
+          </div>
+
+          <div class="group">
+            <label class="small">Opponent's Deck</label>
+            <div style="display:flex;gap:8px">
+              <select id="oppSelect" aria-label="Opponent deck"></select>
+              <button id="addOppBtn" class="add-deck" title="Add opponent deck">➕</button>
+            </div>
+          </div>
+
+          <div class="group" style="min-width:120px">
+            <label class="small">Result</label>
+            <select id="resultSelect" aria-label="Result">
+              <option>Win</option>
+              <option>Loss</option>
+            </select>
+          </div>
+
+          <div class="group" style="min-width:110px">
+            <label class="small">Turn Order</label>
+            <select id="turnOrder" aria-label="Turn order">
+              <option value="1st">1st</option>
+              <option value="2nd">2nd</option>
+            </select>
+          </div>
+
+          <div class="group" style="min-width:120px">
+            <label class="small">Pts After (Optional)</label>
+            <input type="text" id="ptsAfterOverride" placeholder="Auto" aria-label="Points after override">
+            <div class="optional-label">Leave empty for automatic calculation</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end">
+            <div style="display:flex;gap:8px">
+              <button id="addMatchBtn" class="btn">Add Match</button>
+              <button id="clearSessionBtn" class="btn-ghost">Clear Session</button>
+            </div>
+            <div class="small" style="text-align:right" id="pointsInfo">Start: <strong>1500</strong> • Win: <strong>+7</strong> • Loss: <strong>-7</strong></div>
+          </div>
         </div>
 
-        <table id="matchesTable">
-          <thead>
-            <tr>
-              <th>Your Deck</th><th>Opponent Deck</th><th>Result</th><th>Turn</th><th>Before</th><th>After</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <p id="summaryLine">Matches: 0 • Points: 0 • Winrate: 0%</p>
-      </section>
+        <div style="margin-top:12px" class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="small">Matches (current session)</div>
+            <div id="summaryLine" class="small">Matches: 0 • Points: 1500 • Winrate: 0%</div>
+          </div>
 
-      <!-- 📈 Statistics -->
-      <section id="panel-stats" class="panel">
-        <div class="chart-container">
-          <canvas id="pointsChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <canvas id="trendChart"></canvas>
-        </div>
-        <table id="deckPerfTable">
-          <thead><tr><th>Deck</th><th>Matches</th><th>Wins</th><th>WR%</th><th>1st WR%</th><th>2nd WR%</th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <div id="matrixContainer"></div>
-      </section>
+          <table id="matchesTable" aria-live="polite">
+            <thead><tr><th>Your Deck</th><th>Opponent</th><th>Result</th><th>Turn</th><th>Pts Before</th><th>Pts After</th></tr></thead>
+            <tbody></tbody>
+          </table>
 
-      <!-- 🧠 Advanced Analysis -->
-      <section id="panel-analysis" class="panel">
-        <div id="advancedAnalysis">
-          <div>Average Winrate: <span id="avgWinRate">0%</span></div>
-          <div>Consistency Score: <span id="consistencyScore">0</span></div>
-          <div>Improvement Rate: <span id="improvementRate">0%</span></div>
-          <div>Meta Adaptation: <span id="metaAdaptation">0%</span></div>
-        </div>
-
-        <table id="timeAnalysis">
-          <thead><tr><th>Time</th><th>Matches</th><th>Winrate</th></tr></thead>
-          <tbody></tbody>
-        </table>
-
-        <table id="sessionAnalysis">
-          <thead><tr><th>Session Length</th><th>WR%</th><th>Frequency</th></tr></thead>
-          <tbody></tbody>
-        </table>
-
-        <div id="strategicInsights"></div>
-      </section>
-
-      <!-- 🎲 Probability Calculator -->
-      <section id="panel-calc" class="panel">
-        <div id="hyperCalc">
-          <input id="deckSize" placeholder="Deck size" />
-          <input id="copiesRan" placeholder="Copies of card" />
-          <input id="cardsDrawn" placeholder="Cards drawn" />
-          <input id="oddsToHave" placeholder="Desired copies" />
-          <button onclick="calculateHypergeometric()">Calculate</button>
-          <div id="hyperResults"></div>
+          <div id="alertBox" class="alert-text" role="status" aria-live="polite"></div>
         </div>
       </section>
 
-      <!-- 🎮 Simulator -->
-      <section id="panel-simulator" class="panel">
-        <textarea id="deckText" placeholder="# Your Deck"></textarea>
-        <textarea id="comboText" placeholder="# Combo requirements"></textarea>
-        <input id="simHandSize" value="5" />
-        <input id="simTrials" value="10000" />
-        <button id="simulateBtn">Simulate</button>
-        <div id="simulationResult"></div>
+      <section id="panel-stats" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="small">Progress (Line)</div>
+              <div class="small" id="chartInfo">Points over matches</div>
+            </div>
+            <div class="chart-container">
+              <canvas id="pointsChart"></canvas>
+            </div>
+
+            <div style="margin-top:14px" class="matrix">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <h3 style="margin:0;color:var(--muted)">Matchup Matrix</h3>
+                <div class="view-controls">
+                  <button class="view-control-btn active" data-matrix-view="all">All Players</button>
+                  <button class="view-control-btn" data-matrix-view="current">Current Player</button>
+                </div>
+              </div>
+              <div id="matrixContainer" class="matrix-container"></div>
+            </div>
+          </div>
+
+          <div class="card sidebar deck-perf-container">
+            <div class="small" style="margin-bottom:8px">Deck Performance</div>
+            <table id="deckPerfTable">
+              <thead>
+                <tr>
+                  <th>Deck</th>
+                  <th>Matches</th>
+                  <th>Wins</th>
+                  <th>WR Overall</th>
+                  <th>WR 1st</th>
+                  <th>WR 2nd</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="footer-note">Matrix colors: green=good • yellow=neutral • red=weak</div>
+          </div>
+        </div>
       </section>
 
-      <!-- 🗃️ Archive -->
-      <section id="panel-archive" class="panel">
-        <select id="archivePlayerSelect"></select>
-        <button id="refreshArchiveBtn">Refresh</button>
-        <div id="archiveContent"></div>
-        <div id="archiveEmpty">Select a player to view data</div>
+      <section id="panel-predictions" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin:6px 0;color:var(--muted)">Match Outcome Predictions</h3>
+            <div class="prediction-card">
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+                <div class="group" style="flex:1">
+                  <label class="small">Your Deck</label>
+                  <select id="predDeckSelect" aria-label="Your deck for prediction"></select>
+                </div>
+                <div class="group" style="flex:1">
+                  <label class="small">Opponent's Deck</label>
+                  <select id="predOppSelect" aria-label="Opponent deck for prediction"></select>
+                </div>
+                <div class="group" style="min-width:110px">
+                  <label class="small">Turn Order</label>
+                  <select id="predTurnOrder" aria-label="Turn order for prediction">
+                    <option value="1st">1st</option>
+                    <option value="2nd">2nd</option>
+                  </select>
+                </div>
+                <button id="predictBtn" class="btn" style="align-self:flex-end">Predict</button>
+              </div>
+              
+              <div id="predictionResult" style="display:none">
+                <div class="win-probability" id="winProbability">65%</div>
+                <div style="text-align:center;color:var(--muted);margin-bottom:16px">Predicted Win Probability</div>
+                
+                <div class="confidence-meter">
+                  <div class="confidence-fill" id="confidenceFill" style="width:75%"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+                  <span>Low Confidence</span>
+                  <span id="confidenceValue">75% Confidence</span>
+                  <span>High Confidence</span>
+                </div>
+                
+                <div class="matchup-details">
+                  <div class="matchup-stat">
+                    <div class="stat-value" id="overallWR">62%</div>
+                    <div class="stat-label">Overall Win Rate</div>
+                  </div>
+                  <div class="matchup-stat">
+                    <div class="stat-value" id="turnWR">58%</div>
+                    <div class="stat-label">Win Rate This Turn</div>
+                  </div>
+                  <div class="matchup-stat">
+                    <div class="stat-value" id="matchupWR">67%</div>
+                    <div class="stat-label">Matchup Win Rate</div>
+                  </div>
+                  <div class="matchup-stat">
+                    <div class="stat-value" id="recentWR">70%</div>
+                    <div class="stat-label">Recent Form</div>
+                  </div>
+                </div>
+                
+                <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px">
+                  <div style="font-weight:700;margin-bottom:8px">Prediction Insight</div>
+                  <div id="predictionInsight" class="small">Based on your historical performance, you have a solid advantage in this matchup, especially when going first.</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="prediction-card">
+              <h4 style="margin:0 0 12px 0;color:var(--muted)">Recommended Decks vs Current Meta</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Deck</th>
+                    <th>Predicted WR</th>
+                    <th>Confidence</th>
+                    <th>Meta Score</th>
+                  </tr>
+                </thead>
+                <tbody id="recommendedDecks">
+                  <!-- سيتم ملؤها بالبيانات -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="card sidebar">
+            <h3 style="margin:6px 0;color:var(--muted)">Prediction Factors</h3>
+            <div class="small" style="margin-bottom:12px">Our predictions are based on:</div>
+            <ul style="padding-left:20px;color:var(--muted);font-size:14px;line-height:1.5">
+              <li>Historical matchup data</li>
+              <li>Your performance with specific decks</li>
+              <li>Turn order advantages</li>
+              <li>Recent performance trends</li>
+              <li>Meta game analysis</li>
+            </ul>
+            <div class="footer-note" style="margin-top:16px">Predictions improve as you add more match data.</div>
+          </div>
+        </div>
       </section>
 
+      <!-- Archive Panel -->
+      <section id="panel-archive" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <h3 style="margin:6px 0;color:var(--muted)">Player Archive</h3>
+          <div class="small" style="margin-bottom:16px">View match history and statistics for all players</div>
+          
+          <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div class="group" style="flex:1;min-width:200px">
+              <label class="small">Select Player</label>
+              <select id="archivePlayerSelect" class="modal-input">
+                <option value="">Loading players...</option>
+              </select>
+            </div>
+            <button id="refreshArchiveBtn" class="btn" style="align-self:flex-end">Refresh</button>
+          </div>
+          
+          <div id="archiveContent" style="display:none">
+            <div class="cols">
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="small">Progress (Line)</div>
+                  <div class="small" id="archiveChartInfo">Points over matches</div>
+                </div>
+                <div class="chart-container">
+                  <canvas id="archivePointsChart"></canvas>
+                </div>
+
+                <div style="margin-top:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <h3 style="margin:0;color:var(--muted)">Matchup Matrix</h3>
+                  </div>
+                  <div id="archiveMatrixContainer" class="matrix-container"></div>
+                </div>
+              </div>
+
+              <div class="card sidebar deck-perf-container">
+                <div class="small" style="margin-bottom:8px">Deck Performance</div>
+                <table id="archiveDeckPerfTable">
+                  <thead>
+                    <tr>
+                      <th>Deck</th>
+                      <th>Matches</th>
+                      <th>Wins</th>
+                      <th>WR Overall</th>
+                      <th>WR 1st</th>
+                      <th>WR 2nd</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px">
+              <h4 style="margin:0 0 12px 0;color:var(--muted)">Recent Matches</h4>
+              <table id="archiveMatchesTable" aria-live="polite">
+                <thead><tr><th>Deck</th><th>Opponent</th><th>Result</th><th>Turn</th><th>Pts Before</th><th>Pts After</th><th>Date</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div id="archiveEmpty" style="text-align:center;padding:40px;color:var(--muted)">
+            <div style="font-size:18px;margin-bottom:8px">No player selected</div>
+            <div class="small">Select a player from the dropdown to view their statistics</div>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section id="panel-comparison" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <h3 style="margin:6px 0;color:var(--muted)">Deck Comparison Tool</h3>
+          <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+            <div class="group" style="flex:1;min-width:200px">
+              <label class="small">First Deck</label>
+              <select id="compareDeck1" aria-label="First deck to compare"></select>
+            </div>
+            <div class="group" style="flex:1;min-width:200px">
+              <label class="small">Second Deck</label>
+              <select id="compareDeck2" aria-label="Second deck to compare"></select>
+            </div>
+            <button id="compareBtn" class="btn" style="align-self:flex-end">Compare</button>
+          </div>
+          
+          <div id="comparisonResult" style="display:none">
+            <div class="comparison-grid">
+              <div class="card">
+                <h4 style="text-align:center;margin:0 0 16px 0;color:var(--muted)" id="deck1Name">Deck 1</h4>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck1WR">0%</div>
+                  <div class="stat-label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck1Matches">0</div>
+                  <div class="stat-label">Total Matches</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck1Streak">0</div>
+                  <div class="stat-label">Best Win Streak</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck1Turn1WR">0%</div>
+                  <div class="stat-label">Win Rate Going 1st</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck1Turn2WR">0%</div>
+                  <div class="stat-label">Win Rate Going 2nd</div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <h4 style="text-align:center;margin:0 0 16px 0;color:var(--muted)" id="deck2Name">Deck 2</h4>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck2WR">0%</div>
+                  <div class="stat-label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck2Matches">0</div>
+                  <div class="stat-label">Total Matches</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck2Streak">0</div>
+                  <div class="stat-label">Best Win Streak</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck2Turn1WR">0%</div>
+                  <div class="stat-label">Win Rate Going 1st</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="deck2Turn2WR">0%</div>
+                  <div class="stat-label">Win Rate Going 2nd</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px">
+              <h4 style="margin:0 0 12px 0;color:var(--muted)">Head-to-Head Analysis</h4>
+              <div id="h2hAnalysis" class="small">
+                <!-- سيتم ملؤها بالتحليل -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-analysis" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin:6px 0;color:var(--muted)">Advanced Performance Analysis</h3>
+            
+            <div class="analysis-section">
+              <h4 style="margin:16px 0 12px 0;color:var(--muted)">Performance Trends</h4>
+              <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="analysis-section">
+              <h4 style="margin:16px 0 12px 0;color:var(--muted)">Key Performance Indicators</h4>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px">
+                <div class="stat-card">
+                  <div class="stat-value" id="avgWinRate">0%</div>
+                  <div class="stat-label">Average Win Rate</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="consistencyScore">0</div>
+                  <div class="stat-label">Consistency Score</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="improvementRate">0%</div>
+                  <div class="stat-label">Improvement Rate</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="metaAdaptation">0%</div>
+                  <div class="stat-label">Meta Adaptation</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="analysis-section">
+              <h4 style="margin:16px 0 12px 0;color:var(--muted)">Performance Breakdown</h4>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="card">
+                  <h5 style="margin:0 0 12px 0;color:var(--muted)">By Time of Day</h5>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Period</th>
+                        <th>Matches</th>
+                        <th>Win Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody id="timeAnalysis">
+                      <!-- سيتم ملؤها بالبيانات -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="card">
+                  <h5 style="margin:0 0 12px 0;color:var(--muted)">By Session Length</h5>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Matches/Session</th>
+                        <th>Win Rate</th>
+                        <th>Frequency</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sessionAnalysis">
+                      <!-- سيتم ملؤها بالبيانات -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card sidebar">
+            <h3 style="margin:6px 0;color:var(--muted)">Strategic Insights</h3>
+            <div id="strategicInsights" class="small">
+              <!-- سيتم ملؤها بالرؤى الاستراتيجية -->
+            </div>
+            <div class="footer-note" style="margin-top:16px">Insights are generated based on your play patterns and match history.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-calc" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin:6px 0;color:var(--muted)">Probability Calculator</h3>
+            
+            <div class="calc-section">
+              <div class="calc-title">Hypergeometric Calculator</div>
+              <div class="calc-inputs">
+                <div class="calc-input-group">
+                  <label class="small">Deck Size</label>
+                  <input type="number" id="deckSize" min="1" max="100" value="60" class="modal-input">
+                </div>
+                <div class="calc-input-group">
+                  <label class="small">Copies Ran</label>
+                  <input type="number" id="copiesRan" min="0" max="20" value="4" class="modal-input">
+                </div>
+                <div class="calc-input-group">
+                  <label class="small">Cards drawn</label>
+                  <input type="number" id="cardsDrawn" min="1" max="20" value="7" class="modal-input">
+                </div>
+                <div class="calc-input-group">
+                  <label class="small">Odds to Have</label>
+                  <input type="number" id="oddsToHave" min="1" max="10" value="1" class="modal-input">
+                </div>
+              </div>
+              <button id="calculateHyperBtn" class="btn">Calculate</button>
+              
+              <div id="hyperResults" class="calc-results" style="display:none; margin-top:16px">
+                <div class="calc-title">Hypergeometric Results</div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label" id="oddsLessLabel">Odds of &lt; 1:</span>
+                  <span class="calc-result-value" id="oddsLess1">0%</span>
+                </div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label" id="oddsLessEqualLabel">Odds of ≤ 1:</span>
+                  <span class="calc-result-value" id="oddsLessEqual1">0%</span>
+                </div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label" id="oddsEqualLabel">Odds of = 1:</span>
+                  <span class="calc-result-value" id="oddsEqual1">0%</span>
+                </div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label" id="oddsGreaterEqualLabel">Odds of ≥ 1:</span>
+                  <span class="calc-result-value" id="oddsGreaterEqual1">0%</span>
+                </div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label" id="oddsGreaterLabel">Odds of &gt; 1:</span>
+                  <span class="calc-result-value" id="oddsGreater1">0%</span>
+                </div>
+                <div class="calc-result-item">
+                  <span class="calc-result-label">Expected Value:</span>
+                  <span class="calc-result-value" id="expectedValue">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card sidebar">
+            <h3 style="margin:6px 0;color:var(--muted)">About Hypergeometric Distribution</h3>
+            <div class="small" style="margin-bottom:12px">
+              The hypergeometric distribution calculates the probability of drawing a certain number of successes from a finite population without replacement.
+            </div>
+            <ul style="padding-left:20px;color:var(--muted);font-size:14px;line-height:1.5">
+              <li>Useful for card game probabilities</li>
+              <li>Accounts for deck depletion</li>
+              <li>More accurate than binomial for small samples</li>
+            </ul>
+            <div class="footer-note" style="margin-top:16px">Calculations assume a well-shuffled deck and random draws.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-simulator" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="deck-simulator-container">
+            <div class="card">
+              <h3 style="margin:6px 0;color:var(--muted)">Probability Simulator</h3>
+              
+              <div class="simulator-controls">
+                <div class="group" style="flex:1;min-width:200px">
+                  <label class="small">Hand Size</label>
+                  <input type="number" id="simHandSize" class="modal-input" value="5" min="1" max="20">
+                </div>
+                <div class="group" style="flex:1;min-width:200px">
+                  <label class="small">Trials</label>
+                  <input type="number" id="simTrials" class="modal-input" value="100000" min="1000" max="10000000">
+                </div>
+                <div class="group" style="display:flex;align-items:flex-end;gap:8px">
+                  <input type="checkbox" id="autoSimulate" class="btn-check" checked>
+                  <label for="autoSimulate" class="btn-ghost">Auto-simulate</label>
+                  <button id="simulateBtn" class="btn">Simulate</button>
+                </div>
+              </div>
+
+              <div class="simulator-result">
+                <div class="result-display">
+                  <span id="simulationResult">0%</span>
+                </div>
+                <div class="small" style="color:var(--muted)">Probability of drawing combo</div>
+              </div>
+
+              <div class="deck-combo-inputs">
+                <div class="deck-input">
+                  <div class="input-header">
+                    <label class="small">Deck List</label>
+                    <div>
+                      <select id="deckPreset" class="form-select" style="display:inline-block;width:auto;margin-right:8px">
+                        <option value="default">Default Deck</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                      <button id="newDeckBtn" class="btn-ghost">New</button>
+                    </div>
+                  </div>
+                  <div class="textarea-container">
+                    <textarea id="deckText" class="modal-input font-monospace" rows="15" spellcheck="false" style="width:100%;resize:vertical">
+# Add your deck here
+40 total
+3 card a
+3 card b
+3 card c
+3 card d
+3 card e
+3 card f
+1 card g
+2 draw2
+3 pickfrom6</textarea>
+                  </div>
+                </div>
+
+                <div class="combo-input">
+                  <div class="input-header">
+                    <label class="small">Combo Requirements</label>
+                    <div>
+                      <select id="comboPreset" class="form-select" style="display:inline-block;width:auto;margin-right:8px">
+                        <option value="default">Default Combo</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                      <button id="newComboBtn" class="btn-ghost">New</button>
+                    </div>
+                  </div>
+                  <div class="textarea-container">
+                    <textarea id="comboText" class="modal-input font-monospace" rows="15" spellcheck="false" style="width:100%;resize:vertical">
+# Add your combo requirements here
+card a
+card b + (card c | card d)
+card b + 2 card e
+card b + card f + -1 card g</textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="simulator-errors">
+                <div id="deckErrors" class="alert-text"></div>
+                <div id="comboErrors" class="alert-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card sidebar">
+            <h3 style="margin:6px 0;color:var(--muted)">How to Use</h3>
+            <div class="small" style="margin-bottom:12px">
+              Calculate the probability of drawing specific card combinations from your deck.
+            </div>
+            <ul style="padding-left:20px;color:var(--muted);font-size:14px;line-height:1.5">
+              <li><strong>Deck Format:</strong> One card per line: "3 Card Name"</li>
+              <li><strong>Total:</strong> Use "40 total" to set deck size</li>
+              <li><strong>Combos:</strong> Use + for AND, | for OR</li>
+              <li><strong>Copies:</strong> "2 card" means 2 copies</li>
+              <li><strong>In Deck:</strong> "-1 card" means must remain in deck</li>
+            </ul>
+            <div class="footer-note" style="margin-top:16px">
+              Special cards: draw2 (draw 2 extra), pickfrom6 (pick 1 from 6)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-meta" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="small">Meta Feed</div>
+              <div class="view-controls">
+                <button class="view-control-btn active" data-meta-view="all">All Players</button>
+                <button class="view-control-btn" data-meta-view="current">Current Player</button>
+                <button class="view-control-btn" data-meta-view="circle">Circle</button>
+              </div>
+            </div>
+
+            <div class="circle-selector" id="circleSelector" style="display:none">
+              <div class="small" style="margin-bottom:6px">Select Rating Circle</div>
+              <select id="circleSelect" class="modal-input">
+                <option value="1500-1550">1500-1550</option>
+                <option value="1550-1600">1550-1600</option>
+                <option value="1600-1650">1600-1650</option>
+                <option value="1650-1700">1650-1700</option>
+                <option value="1700-1750">1700-1750</option>
+                <option value="1750-1800">1750-1800</option>
+                <option value="1800-1850">1800-1850</option>
+                <option value="1850-1900">1850-1900</option>
+                <option value="1900+">1900+</option>
+              </select>
+            </div>
+
+            <div class="meta-grid" style="margin-top:12px">
+              <div class="card">
+                <div style="font-weight:700;margin-bottom:8px">Your Deck Usage</div>
+                <table id="metaYour"><thead><tr><th>Deck</th><th>Times</th><th>Winrate</th></tr></thead><tbody></tbody></table>
+              </div>
+              <div class="card">
+                <div style="font-weight:700;margin-bottom:8px">Opponent Deck Usage</div>
+                <table id="metaOpp"><thead><tr><th>Deck</th><th>Times</th><th>Winrate</th></tr></thead><tbody></tbody></table>
+              </div>
+            </div>
+
+            <div class="footer-note">Data updates automatically after each match. Export JSON to backup.</div>
+          </div>
+
+          <div class="card sidebar">
+            <div class="small" style="margin-bottom:8px">Export / Import</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="exportSessionBtn" class="btn-ghost">Export Session</button>
+              <button id="exportAllBtn2" class="btn-ghost">Export All</button>
+              <button id="importSessionBtn" class="btn-ghost">Import File</button>
+              <input type="file" id="importFileInput" accept="application/json" style="display:none">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-sessions" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input id="newSessionName" placeholder="New session name" style="flex:1;padding:10px;border-radius:8px;background:var(--input-bg);border:1px solid var(--input-border)">
+            <button id="createSessionBtn" class="btn">Create</button>
+            <button id="refreshSessionsBtn" class="btn-ghost">Refresh</button>
+          </div>
+
+          <div id="sessionList" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto"></div>
+          <div class="footer-note">Sessions are stored locally. Click "Manage Sessions" in Match Submission to quickly jump.</div>
+        </div>
+      </section>
+
+      <section id="panel-deck-lists" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <h3 style="margin:6px 0;color:var(--muted)">Deck Lists</h3>
+          <div class="small" style="margin-bottom:16px">Create and manage your deck lists</div>
+          
+          <div style="display:flex;gap:12px;margin-bottom:16px">
+            <button id="addDeckListBtn" class="btn">Add New Deck List</button>
+          </div>
+          
+          <h4 style="margin:24px 0 12px 0;color:var(--muted)">Best Performing Decks</h4>
+          <div id="bestDecksContainer" class="best-decks-container">
+            <!-- سيتم ملؤها بأفضل المجموعات -->
+          </div>
+          
+          <h4 style="margin:24px 0 12px 0;color:var(--muted)">All Deck Lists</h4>
+          <div id="deckListsContainer" class="deck-list-container">
+            <!-- سيتم ملؤها بقوائم المجموعات -->
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-settings" class="panel" role="tabpanel" aria-hidden="true">
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin:6px 0;color:var(--muted)">Appearance Settings</h3>
+            
+            <div class="settings-group">
+              <div class="settings-label">
+                <span class="small">Background Opacity</span>
+                <span class="small" id="bgOpacityValue">100%</span>
+              </div>
+              <input type="range" id="bgOpacity" class="settings-slider" min="0.1" max="1" step="0.05" value="1">
+            </div>
+            
+            <div class="settings-group">
+              <div class="settings-label">
+                <span class="small">Card Opacity</span>
+                <span class="small" id="cardOpacityValue">100%</span>
+              </div>
+              <input type="range" id="cardOpacity" class="settings-slider" min="0.1" max="1" step="0.05" value="1">
+            </div>
+            
+            <div class="settings-group">
+              <div class="small" style="margin-bottom:8px">Theme</div>
+              <div class="theme-options">
+                <div class="theme-option active" data-theme="default">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)"></div>
+                  <div class="small">Default</div>
+                </div>
+                <div class="theme-option" data-theme="blue">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#0a1929,#1a3658,#2a4b7c)"></div>
+                  <div class="small">Blue</div>
+                </div>
+                <div class="theme-option" data-theme="green">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#0d2615,#1a472a,#276845)"></div>
+                  <div class="small">Green</div>
+                </div>
+                <div class="theme-option" data-theme="purple">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#1a0d2e,#2d1a4c,#45277a)"></div>
+                  <div class="small">Purple</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <div class="small" style="margin-bottom:8px">Points Formula</div>
+              <div class="formula-options">
+                <div class="formula-option active" data-formula="rated">
+                  <div class="formula-title">Rated Formula</div>
+                  <div class="formula-desc">Start: 1500 • Win: +7 • Loss: -7</div>
+                </div>
+                <div class="formula-option" data-formula="dc">
+                  <div class="formula-title">DC Formula</div>
+                  <div class="formula-desc">Start: 0k • Win: +1k • Loss: -1k (or -0.5k if below 15k)</div>
+                </div>
+              </div>
+            </div>
+            
+            <div style="margin-top:24px">
+              <button id="resetSettings" class="btn-ghost">Reset to Default</button>
+            </div>
+          </div>
+          
+          <div class="card sidebar">
+            <h3 style="margin:6px 0;color:var(--muted)">About</h3>
+            <div class="small" style="margin-bottom:12px">
+              Duelist Tracker - Advanced Version
+            </div>
+            <div class="small" style="line-height:1.5">
+              Track your matches, analyze performance, and improve your strategy with advanced analytics and predictions.
+            </div>
+            <div class="footer-note" style="margin-top:16px">
+              All data is stored locally in your browser. Export your data regularly to prevent loss.
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof initializeApp === 'function') initializeApp();
-    });
-  </script>
+  <div id="deckModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Add New Deck</h3>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="deckNameInput" class="modal-input" placeholder="Enter deck name" autofocus>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelDeckBtn" class="btn-ghost">Cancel</button>
+        <button id="confirmDeckBtn" class="btn">Add Deck</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sessionModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New Session</h3>
+      </div>
+      <div class="modal-body">
+        <div class="group">
+          <label class="small">Session Name</label>
+          <input type="text" id="sessionNameInput" class="modal-input" placeholder="Enter session name">
+        </div>
+        <div class="group" style="margin-top:16px">
+          <label class="small">Points Formula</label>
+          <select id="sessionFormulaSelect" class="modal-input">
+            <option value="rated">Rated Formula (1500 start, ±7)</option>
+            <option value="dc">DC Formula (0k start, ±1k/-0.5k)</option>
+          </select>
+        </div>
+        <div class="group" style="margin-top:16px">
+          <label class="small">Starting Points</label>
+          <input type="number" id="sessionStartPoints" class="modal-input" placeholder="1500">
+          <div class="small" style="margin-top:4px">Leave empty for default starting points</div>
+        </div>
+        <div class="group" style="margin-top:16px">
+          <label class="small">Default Deck</label>
+          <select id="sessionDefaultDeck" class="modal-input">
+            <option value="">No default deck</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelSessionBtn" class="btn-ghost">Cancel</button>
+        <button id="confirmSessionBtn" class="btn">Create Session</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deckListModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width:500px">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Deck List</h3>
+      </div>
+      <div class="modal-body">
+        <div class="group">
+          <label class="small">Deck Name</label>
+          <input type="text" id="deckListName" class="modal-input" placeholder="Enter deck name">
+        </div>
+        <div class="group" style="margin-top:16px">
+          <label class="small">Deck Image URL (Optional)</label>
+          <input type="text" id="deckListImage" class="modal-input" placeholder="https://example.com/deck-image.jpg">
+        </div>
+        <div class="group" style="margin-top:16px">
+          <label class="small">Deck Description (Optional)</label>
+          <textarea id="deckListDescription" class="modal-input" placeholder="Describe your deck strategy..." rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelDeckListBtn" class="btn-ghost">Cancel</button>
+        <button id="confirmDeckListBtn" class="btn">Add Deck List</button>
+      </div>
+    </div>
+  </div>
+
+
 </body>
 </html>
