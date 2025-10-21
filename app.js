@@ -2681,17 +2681,30 @@ async function importSession(file) {
 // ==================== نظام تسجيل الدخول (Discord) ====================
 
 function initLoginSystem() {
-  console.log('Initializing login system...');
+  console.log('🔄 Initializing login system...');
   
   const discordLoginBtn = document.getElementById('discordLoginBtn');
-  console.log('Discord button found:', discordLoginBtn);
+  console.log('🔘 Discord button element:', discordLoginBtn);
   
   if (discordLoginBtn) {
-    discordLoginBtn.addEventListener('click', handleDiscordLogin);
-    console.log('Event listener added to Discord button');
+    // إزالة أي event listeners قديمة
+    discordLoginBtn.replaceWith(discordLoginBtn.cloneNode(true));
+    
+    // الحصول على الزر الجديد
+    const newDiscordBtn = document.getElementById('discordLoginBtn');
+    
+    newDiscordBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('🎯 Discord button clicked!');
+      handleDiscordLogin();
+    });
+    
+    console.log('✅ Discord button event listener added');
   } else {
-    console.error('Discord login button not found!');
+    console.error('❌ Discord login button not found!');
   }
+}
+
   
   // تأكد من أن logoutBtn موجود
   if (logoutBtn) {
@@ -2700,16 +2713,19 @@ function initLoginSystem() {
 }
 
 async function handleDiscordLogin() {
+  console.log('🎯 handleDiscordLogin called');
+  
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-    });
+    const result = await signInWithDiscord();
     
-    if (error) throw error;
-    
+    if (result) {
+      console.log('✅ Login process completed');
+    } else {
+      console.log('❌ Login process failed');
+    }
   } catch (error) {
-    console.error('Login error:', error);
-    alert('Error: ' + error.message);
+    console.error('❌ Error in handleDiscordLogin:', error);
+    showAlert('Login process error: ' + error.message, 'error');
   }
 }
     
@@ -2742,22 +2758,36 @@ async function handleLogout() {
 // ==================== نظام المستخدمين مع Supabase (Discord OAuth) ====================
 
 async function signInWithDiscord() {
+  console.log('🔄 Starting Discord OAuth...');
+  
   try {
+    const currentUrl = window.location.origin;
+    console.log('📍 Current URL:', currentUrl);
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.origin, // هذا سيعطي رابط Vercel تلقائياً
+        redirectTo: currentUrl,
         scopes: 'identify email'
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Discord OAuth Error:', error);
+      showAlert('OAuth Error: ' + error.message, 'error');
+      return null;
+    }
+    
+    console.log('✅ OAuth initiated successfully:', data);
     return data;
+    
   } catch (error) {
-    console.error('Discord login error:', error);
-    throw error;
+    console.error('❌ Unexpected error in signInWithDiscord:', error);
+    showAlert('Unexpected error: ' + error.message, 'error');
+    return null;
   }
 }
+
     
 
 async function getCurrentSessionUser() {
