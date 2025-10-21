@@ -1,5 +1,5 @@
 // تحقق من أن الملف يحمل كـ JavaScript
-console.log('app.js loaded successfully');
+console.log("✅ app.js loaded as module");
 
 // تحقق من وجود مكتبة Supabase
 if (typeof window.supabase === 'undefined') {
