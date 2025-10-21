@@ -155,10 +155,7 @@ async function getCurrentSessionUser() {
   return user;
 }
 
-async function logoutUser() {
-  const { error } = await supabase.auth.signOut();
-  if (error) console.error('Logout error:', error);
-}
+
 
 // ==================== نظام تسجيل الدخول (Discord) ====================
 
