@@ -3119,4 +3119,23 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   initLoginSystem();
+  initSupabase();
+
+  
+supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('🔐 Auth state changed:', event, session);
+    
+    if (session) {
+      currentUser = session.user;
+      loginModal.classList.remove('active');
+      app.style.display = 'block';
+      await initializeApp();
+      showAlert(`Welcome back!`, 'success');
+    } else {
+      currentUser = null;
+      currentSessionId = null;
+      allSessions = {};
+      loginModal.classList.add('active');
+      app.style.display = 'none';
+  
 });
