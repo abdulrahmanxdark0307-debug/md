@@ -239,7 +239,7 @@ async function registerUser(username, password) {
 
 async function loginUser(email, password) {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.Password({
       email: email,
       password: password
     });
@@ -2746,23 +2746,19 @@ async function signInWithDiscord() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: window.location.origin, // هذا سيعطي رابط Vercel تلقائياً
         scopes: 'identify email'
       }
     });
     
-    if (error) {
-      console.error('Discord OAuth error:', error);
-      throw error;
-    }
-    
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error('Discord login error:', error);
-    showAlert('Failed to connect with Discord. Please try again.', 'error');
     throw error;
   }
 }
+    
 
 async function getCurrentSessionUser() {
   const { data: { user } } = await supabase.auth.getUser();
