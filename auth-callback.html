@@ -50,29 +50,77 @@
 
         async function handleAuthCallback() {
             try {
-                // Get the session from URL hash
-                const { data: { session }, error } = await supabase.auth.getSession();
+                console.log('🔄 Handling OAuth callback...');
                 
+                // Get the URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const error = urlParams.get('error');
+                const errorDescription = urlParams.get('error_description');
+                
+                // Check for OAuth errors
                 if (error) {
-                    throw error;
+                    throw new Error(`${error}: ${errorDescription}`);
                 }
 
-                if (session) {
-                    console.log('✅ Authentication successful');
-                    // Redirect to main app
-                    window.location.href = '/';
-                } else {
-                    // Wait a bit and try again (sometimes it takes a moment)
-                    setTimeout(() => {
-                        handleAuthCallback();
-                    }, 1000);
+                // Try to get the session - this should complete the OAuth flow
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    throw sessionError;
                 }
+
+                console.log('🔐 Session after OAuth:', session);
+
+                if (session) {
+                    console.log('✅ Authentication successful, redirecting...');
+                    // Redirect to main app immediately
+                    window.location.href = '/';
+                    return;
+                }
+
+                // If no session yet, set up auth state listener
+                console.log('⏳ Waiting for authentication...');
+                
+                const { data: { subscription } } = supabase.auth.onAuthStateChange(
+                    async (event, session) => {
+                        console.log('🔐 Auth state change:', event);
+                        
+                        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                            console.log('✅ User authenticated, redirecting...');
+                            subscription.unsubscribe();
+                            
+                            // Small delay to ensure session is set
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 500);
+                        }
+                        
+                        if (event === 'SIGNED_OUT') {
+                            console.log('❌ User signed out');
+                            subscription.unsubscribe();
+                            window.location.href = '/';
+                        }
+                    }
+                );
+
+                // Fallback timeout - if nothing happens in 10 seconds, redirect
+                setTimeout(() => {
+                    console.log('⏰ Fallback timeout, redirecting to home...');
+                    window.location.href = '/';
+                }, 10000);
+
             } catch (error) {
                 console.error('❌ Auth callback error:', error);
                 document.body.innerHTML = `
                     <div class="container">
                         <h2 style="color: #ff6b6b;">Authentication Failed</h2>
                         <p>${error.message}</p>
+                        <p style="font-size: 14px; margin-top: 20px;">You can try:</p>
+                        <ul style="text-align: left; font-size: 14px; display: inline-block;">
+                            <li>Refreshing the page</li>
+                            <li>Clearing browser cache and cookies</li>
+                            <li>Trying login again</li>
+                        </ul>
                         <button onclick="window.location.href='/'" style="
                             background: #7c5cff;
                             color: white;
@@ -87,23 +135,8 @@
             }
         }
 
-        // Handle the OAuth callback
-        supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change in callback:', event);
-            
-            if (event === 'SIGNED_IN') {
-                console.log('✅ User signed in successfully');
-                // Redirect to main app after successful sign in
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000);
-            } else if (event === 'SIGNED_OUT') {
-                window.location.href = '/';
-            }
-        });
-
-        // Start handling the callback
-        handleAuthCallback();
+        // Start handling the callback when page loads
+        document.addEventListener('DOMContentLoaded', handleAuthCallback);
     </script>
 </body>
 </html>
