@@ -16,27 +16,28 @@
   ],
   "routes": [
     {
-      "src": "/app.js",
-      "dest": "/app.js",
+      "src": "/app\\.js",
       "headers": {
         "Cache-Control": "public, max-age=3600",
         "Content-Type": "application/javascript"
       }
     },
     {
-      "src": "/styles.css",
-      "dest": "/styles.css",
+      "src": "/styles\\.css",
       "headers": {
-        "Cache-Control": "public, max-age=3600", 
+        "Cache-Control": "public, max-age=3600",
         "Content-Type": "text/css"
       }
     },
     {
-      "src": "/auth-callback.html",
-      "dest": "/auth-callback.html",
+      "src": "/auth-callback\\.html",
       "headers": {
         "Cache-Control": "no-cache, no-store, must-revalidate"
       }
+    },
+    {
+      "src": "/auth/callback",
+      "dest": "/auth-callback.html"
     },
     {
       "src": "/(.*)",
@@ -44,12 +45,6 @@
       "headers": {
         "Cache-Control": "no-cache, no-store, must-revalidate"
       }
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/auth/callback",
-      "destination": "/auth-callback.html"
     }
   ]
 }
